@@ -26,10 +26,10 @@ function love.load()
 
     if fullscreen == false then
         if scale ~= 5 then
-            love.graphics.setMode(160 * scale, 144 * scale, false, vsync, 0)
+            love.window.setMode(160 * scale, 144 * scale, { vsync = vsync })
         end
     else
-        love.graphics.setMode(0, 0, true, vsync, 0)
+        love.window.setMode(0, 0, { fullscreen = true, vsync = vsync })
         love.mouse.setVisible(false)
         desktopwidth, desktopheight = love.graphics.getWidth(), love.graphics.getHeight()
         saveoptions()
@@ -95,7 +95,7 @@ function love.load()
     musicoptions:setVolume(1)
     musicoptions:setLooping(true)
 
-    boot = love.audio.newSource("sounds/boot.ogg")
+    boot = love.audio.newSource("sounds/boot.ogg", "static")
     blockfall = love.audio.newSource("sounds/blockfall.ogg", "stream")
     blockturn = love.audio.newSource("sounds/turn.ogg", "stream")
     blockmove = love.audio.newSource("sounds/move.ogg", "stream")
@@ -152,23 +152,23 @@ function love.load()
     selectblink = true
     cursorblink = true
     playerselection = 1
-    musicno = 1               --
-    gameno = 1                --
-    selection = 1             --
-    colorizeduration = 3      --seconds
-    lineclearduration = 1.2   --seconds
-    lineclearblinks = 7       --i
-    linecleartreshold = 8.1   --in blocks
+    musicno = 1                    --
+    gameno = 1                     --
+    selection = 1                  --
+    colorizeduration = 3           --seconds
+    lineclearduration = 1.2        --seconds
+    lineclearblinks = 7            --i
+    linecleartreshold = 8.1        --in blocks
     densityupdateinterval = 1 / 30 --in seconds
-    nextpiecerotspeed = 1     --rad per seconnd
-    minfps = 1 / 50           --dt doesn't go higher than this
+    nextpiecerotspeed = 1          --rad per seconnd
+    minfps = 1 / 50                --dt doesn't go higher than this
     scoreaddtime = 0.5
     startdelaytime = 0
     density = 0.1
 
     blockstartY = -64 --where new blocks are created
-    losingY = 0    --lose if block 1 collides above this line
-    blockmass = 5  --probably obsolete because body:setMassFromShapes()
+    losingY = 0       --lose if block 1 collides above this line
+    blockmass = 5     --probably obsolete because body:setMassFromShapes()
     blockrot = 10
     blockrestitution = 0.1
     minmass = 1
@@ -388,15 +388,15 @@ function newImageData(path, s)
             local oldr, oldg, oldb, olda = imagedata:getPixel(x, y)
 
             if olda ~= 0 then
-                if oldr > 203 and oldr < 213 then --lightgrey
-                    local r = 145 + rr * 64
-                    local g = 145 + rg * 64
-                    local b = 145 + rb * 64
+                if oldr > 203 / 255 and oldr < 213 / 255 then --lightgrey
+                    local r = (145 + rr * 64) / 255
+                    local g = (145 + rg * 64) / 255
+                    local b = (145 + rb * 64) / 255
                     imagedata:setPixel(x, y, r, g, b, olda)
-                elseif oldr > 107 and oldr < 117 then --darkgrey
-                    local r = 73 + rr * 43
-                    local g = 73 + rg * 43
-                    local b = 73 + rb * 43
+                elseif oldr > 107 / 255 and oldr < 117 / 255 then --darkgrey
+                    local r = (73 + rr * 43) / 255
+                    local g = (73 + rg * 43) / 255
+                    local b = (73 + rb * 43) / 255
                     imagedata:setPixel(x, y, r, g, b, olda)
                 end
             end
@@ -458,9 +458,7 @@ function newPaddedImageFont(filename, glyphs)
     if wp ~= w or hp ~= h then
         local padded = love.image.newImageData(wp, hp)
         padded:paste(source, 0, 0)
-        local image = love.graphics.newImage(padded)
-        image:setFilter("nearest", "nearest")
-        return love.graphics.newImageFont(image, glyphs)
+        return love.graphics.newImageFont(padded, glyphs)
     end
 
     return love.graphics.newImageFont(source, glyphs)
@@ -532,7 +530,7 @@ function loadconfig()
 end
 
 function loadoptions()
-    if love.filesystem.exists("options.txt") then
+    if love.filesystem.getInfo("options.txt") ~= nil then
         local s = love.filesystem.read("options.txt")
         local split1 = s:split("\n")
         for i = 1, #split1 do
@@ -597,8 +595,7 @@ function saveoptions()
 end
 
 function autosize()
-    local modes = love.graphics.getModes()
-    desktopwidth, desktopheight = modes[1]["width"], modes[1]["height"]
+    desktopwidth, desktopheight = love.window.getDesktopDimensions()
 end
 
 function togglefullscreen(fullscr)
@@ -607,9 +604,9 @@ function togglefullscreen(fullscr)
     if fullscr == false then
         scale = suggestedscale
         physicsscale = scale / 4
-        love.graphics.setMode(160 * scale, 144 * scale, false, vsync, 0)
+        love.window.setMode(160 * scale, 144 * scale, { vsync = vsync })
     else
-        love.graphics.setMode(0, 0, true, vsync, 16)
+        love.window.setMode(0, 0, { fullscreen = true, vsync = vsync, msaa = 16 })
         desktopwidth, desktopheight = love.graphics.getWidth(), love.graphics.getHeight()
         suggestedscale = math.min(math.floor((desktopheight - 50) / 144), math.floor((desktopwidth - 10) / 160))
         suggestedscale = math.min(math.floor((desktopheight - 50) / 144), math.floor((desktopwidth - 10) / 160))
@@ -633,7 +630,7 @@ function loadhighscores()
         fileloc = "highscoresB.txt"
     end
 
-    if love.filesystem.exists(fileloc) then
+    if love.filesystem.getInfo(fileloc) ~= nil then
         highdata = love.filesystem.read(fileloc)
         highdata = highdata:split(";")
         highscore = {}
@@ -682,7 +679,7 @@ function savehighscores()
 end
 
 function changescale(i)
-    love.graphics.setMode(160 * i, 144 * i, false, vsync, 0)
+    love.window.setMode(160 * i, 144 * i, { vsync = vsync })
     nextpieceimg = {}
     for j = 1, 7 do
         nextpieceimg[j] = newPaddedImage("graphics/pieces/" .. j .. ".png", i)
@@ -785,7 +782,18 @@ function getrainbowcolor(i)
     return { r, g, b }
 end
 
-function love.keypressed(key, unicode)
+function love.textinput(text)
+    if gamestate == "highscoreentry" then
+        if highscorename[highscoreno]:len() < 6 then
+            cursorblink = true
+            highscorename[highscoreno] = highscorename[highscoreno] .. text
+            love.audio.stop(highscorebeep)
+            love.audio.play(highscorebeep)
+        end
+    end
+end
+
+function love.keypressed(key, scancode, isrepeat)
     if gamestate == nil then
         if controls.check("return", key) then
             gamestate = "title"
@@ -830,7 +838,7 @@ function love.keypressed(key, unicode)
                 optionsselection = 1
             end
         elseif controls.check("escape", key) then
-            love.event.push("q")
+            love.event.quit()
         elseif controls.check("left", key) and playerselection > 1 then
             playerselection = playerselection - 1
         elseif controls.check("right", key) and playerselection < 3 then
@@ -1098,7 +1106,7 @@ function love.keypressed(key, unicode)
     elseif gamestate == "gameBmulti" and gamestarted == false then
         if controls.check("escape", key) then
             if not fullscreen then
-                love.graphics.setMode(160 * scale, 144 * scale, false, vsync, 0)
+                love.window.setMode(160 * scale, 144 * scale, { vsync = vsync })
             end
             gamestate = "multimenu"
             if musicno < 4 then
@@ -1108,7 +1116,7 @@ function love.keypressed(key, unicode)
     elseif gamestate == "gameBmulti" and gamestarted == true then
         if controls.check("escape", key) then
             if not fullscreen then
-                love.graphics.setMode(160 * scale, 144 * scale, false, vsync, 0)
+                love.window.setMode(160 * scale, 144 * scale, { vsync = vsync })
             end
             gamestate = "multimenu"
         end
@@ -1126,7 +1134,7 @@ function love.keypressed(key, unicode)
                 love.audio.play(music[musicno])
             end
             if not fullscreen then
-                love.graphics.setMode(160 * scale, 144 * scale, false, vsync, 0)
+                love.window.setMode(160 * scale, 144 * scale, { vsync = vsync })
             end
             gamestate = "multimenu"
         end
@@ -1151,7 +1159,7 @@ function love.keypressed(key, unicode)
             if highscorename[highscoreno]:len() > 0 then
                 cursorblink = true
                 highscorename[highscoreno] = string.sub(highscorename[highscoreno], 1, highscorename[highscoreno]:len() -
-                1)
+                    1)
             end
         elseif whitelist[unicode] == true then
             if highscorename[highscoreno]:len() < 6 then
@@ -1170,7 +1178,7 @@ function love.keypressed(key, unicode)
     end
 end
 
-function love.errhand(msg)
+function love.errorhandler(msg)
     print("\n======================= LÖVE RUNTIME ERROR =======================")
     print(msg)
     print(debug.traceback())
