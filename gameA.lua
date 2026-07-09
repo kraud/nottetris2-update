@@ -220,20 +220,20 @@ function gameA_draw()
 
     --line density counter
     for i = 1, 18 do
-        local fullness = linearea[i] / 1024 / linecleartreshold
-        if fullness > 1 then
-            fullness = 1
+        local density = linearea[19 - i] / 1024 / linecleartreshold
+        if density > 1 then
+            density = 1
         end
 
         local color
-        if fullness == 1 then
+        if density == 1 then
             color = 0
         else
-            color = 235 - (fullness / 1) * 180
+            color = 235 - (density / 1) * 180
         end
 
         love.graphics.setColor(color, color, color)
-        love.graphics.rectangle("fill", 0, (i - 1) * 8 * scale, math.floor(6 * scale * fullness), 8 * scale)
+        love.graphics.rectangle("fill", 0, (i - 1) * 8 * scale, math.floor(6 * scale * density), 8 * scale)
     end
 
     love.graphics.setColor(255, 255, 255)
@@ -394,11 +394,11 @@ function gameA_update(dt)
 end
 
 function getintersectX(fixture, y) --returns left and right collision points to a certain shape on a Y coordinate (or -1, -0.9 if no collision)
-    local lefttime = fixture:rayCast(55, y, 385, y, 1)
-    local righttime = fixture:rayCast(385, y, 55, y, 1)
-    if lefttime ~= nil and righttime ~= nil then
-        local leftx = 330 * lefttime + 55
-        local rightx = 385 - 330 * righttime
+    local _, _, lfrac = fixture:rayCast(55, y, 385, y, 1)
+    local _, _, rfrac = fixture:rayCast(385, y, 55, y, 1)
+    if lfrac ~= nil and rfrac ~= nil then
+        local leftx  = 55 + (385 - 55) * lfrac
+        local rightx = 385 - (385 - 55) * rfrac
         return leftx, rightx
     else
         return -1, -0.9
@@ -499,7 +499,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                 --gotta set the bodyids here and reuse them in the "check for disconnect shapes" further down
                 for a, b in pairs(tetrifixtures[i - ioffset]) do --remove all shapes
                     if tetrifixtures[i - ioffset][a] then
-                        tetrifixtures[i - ioffset][a]:release()
+                        tetrifixtures[i - ioffset][a]:destroy()
                         tetrifixtures[i - ioffset][a] = nil
                         tetrishapes[i - ioffset][a] = nil
                     end
@@ -510,7 +510,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
 
                 if #tetrishapescopy == 0 then --body empty
                     if tetribodies[i - ioffset] then
-                        tetribodies[i - ioffset]:release()
+                        tetribodies[i - ioffset]:destroy()
                         table.remove(tetribodies, i - ioffset)
                         table.remove(tetrishapes, i - ioffset)
                         table.remove(tetrifixtures, i - ioffset)
@@ -554,7 +554,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                             local lvx, lvy = tetribodies[i - ioffset]:getLinearVelocity()
                             local av = tetribodies[i - ioffset]:getAngularVelocity()
 
-                            tetribodies[i - ioffset]:release()
+                            tetribodies[i - ioffset]:destroy()
                             tetribodies[i - ioffset] = love.physics.newBody(world, bx, by, "dynamic")
                             tetribodies[i - ioffset]:setAngle(rotation)
                             tetribodies[i - ioffset]:setLinearVelocity(lvx, lvy)
@@ -901,7 +901,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
                     if line < lastline then
                         local offset = 0
                         repeat
-                            leftx, rightx = getintersectX(tetrishapes[i][j], (line) * 32 - offset)
+                            leftx, rightx = getintersectX(tetrifixtures[i][j], (line) * 32 - offset)
                             offset = offset + 1
                         until leftx ~= -1 or offset >= 32
 
@@ -1194,7 +1194,7 @@ function beginContactA(a, b, coll)
                     love.audio.play(gameover1)
 
                     if wallfixtures[2] then
-                        wallfixtures[2]:release()
+                        wallfixtures[2]:destroy()
                         wallfixtures[2] = nil
                     end
                 else

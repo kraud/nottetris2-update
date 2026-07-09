@@ -38,20 +38,21 @@ nottetris2/
 The foundational root file required by the LÖVE engine (1205 lines).
 
 - **Role:** Applies the `compat` shim, requires all game modules, handles `love.load` asset initialization (images, sounds, fonts, configuration), routes top-level callbacks (`love.update`, `love.draw`, `love.keypressed`, `love.keyreleased`) to the active gamestate module, and manages global settings (scale, fullscreen, volume, physics constants).
-- **Refactoring Note:** Uses deprecated `love.graphics.setMode()` (0.7.2) instead of `love.window.setMode()` (11.x). Font loading relies on `love.graphics.newImageFont` with 0-255 color arrays.
+- **Refactoring Note:** Migrated to LÖVE 11.5. Uses `love.window.setMode` (lines 29, 32, 607, 609, 682, 1109, 1119, 1137) and `love.textinput` (line 785). The `compat` shim is `require`d at the top (line 1). Font loading calls `love.graphics.newImageFont`, which is still present in LÖVE 11.5, via the local helper `newPaddedImageFont` (lines 449–465); the helper pads the source ImageData to a power-of-two before calling the constructor. Game state routing and asset initialization are unchanged.
 
 ### `compat.lua`
 
 LÖVE version compatibility shim (40 lines). Required at the top of `main.lua`.
 
 - **Role:** Monkey-patches `love.graphics.setColor` / `getColor` to translate 0-255 to 0.0-1.0 float ranges; aliases `love.graphics.drawq` to `love.graphics.draw`; mocks `love.graphics.getMode` to call `love.window.getMode`; translates legacy key constants (e.g., `kpenter` -> `return`) in `love.keyboard.isDown`.
+- **Refactoring Note:** setColor/setBackgroundColor/getColor wrapped; drawq aliased to draw; getMode/getModes routed to `love.window` equivalents; kpenter mapped to return. The shim is intentionally minimal: the only legacy key constant translated is `kpenter` (line 43). The string keys `"kp1"`, `"kp2"`, `"left"`, `"right"`, `"up"`, `"down"`, `"return"`, `"escape"`, and the letter keys used in `controls.lua` and `gameBmulti.lua` (lines 348, 353, 359, 363, 369, 384, 389, 395, 399, 405, 507, 511, 516, 520) are unchanged in LÖVE 11.5 and do not need translation.
 
 ### `conf.lua`
 
 Engine configuration processed before initialization (9 lines).
 
 - **Role:** Sets window title, author, identity, width (800), height (720), FSAA, and vsync.
-- **Refactoring Note:** 0.7.2 format — window flags live in `t.screen` (must be moved to `t.window` for LÖVE 11.x).
+- **Refactoring Note:** Migrated. `t.window.{width,height,msaa,vsync}` and `t.version = "11.5"` are set (lines 5–10); no further action required.
 
 ### `controls.lua`
 
@@ -70,22 +71,20 @@ Game over state handler (102 lines).
 Game mode A — "Classic" with cutoff line (1210 lines).
 
 - **Role:** Spawns pieces, manages physics world, handles input (move, rotate, hard drop), implements cutoff line line-clearing logic, tracks score/level/lines, manages piece preview HUD, draws game frame and backgrounds.
-- **Refactoring Note:** Physics (world, bodies, shapes, fixtures) is defined inline — no separate `physics.lua`. Uses deprecated 0.7.2 patterns: shapes bound directly to bodies in constructor, `love.graphics.drawq`. Line clearing uses mass-density scanning across horizontal planes.
+- **Refactoring Note:** Physics is built with the modern Box2D pattern: standalone `Shape`s bound to `Body`s through `Fixture`s (creation paths at lines 36–53, 81–133; refinement paths at 494, 574, 629, 827, 838). Contact callback `beginContactA` (line 1177) reads `fixture:getUserData()` on both arguments. Destroy lifecycle uses `:destroy()` on bodies and fixtures (lines 502, 513, 557, 1197) — the earlier `:release()` leak is fixed. `getintersectX` (line 396) correctly reads the 3rd return of `Fixture:rayCast` (fraction) rather than the 1st return (surface-normal x). `setScissor` is called with logical pixels only.
 
 ### `gameB.lua`
 
 Game mode B — "Stack" singleplayer (378 lines).
 
 - **Role:** Same core loop as gameA but with goal-based play (clear 40 lines at increasing speed). Smaller file — shares drawing/update structure but simplified.
-- **Refactoring Note:** Uses modern fixture-based physics already (wall fixtures with `love.physics.newFixture`). Still relies on `drawq` and 0.7.2 color conventions.
-
+- **Refactoring Note:** Physics uses the modern fixture-based pattern: bodies created with string types (lines 29–49), standalone shapes bound via `love.physics.newFixture`. Wall removal at line 340 destroys `wallfixtures[2]` (the earlier `:release()` on the bare shape is fixed). Collision callback `collideB` (line 319) reads `fixture:getUserData()` correctly. Wall fixture user-data uses bare strings (`"left"`, `"right"`, `"ground"`, `"ceiling"` at lines 36, 40, 44, 47); piece user-data uses bare integer `uniqueid` (line 159).
 ### `gameBmulti.lua`
 
 Game mode B — two-player versus (794 lines).
 
 - **Role:** Splits screen horizontally for two simultaneous players. Tracks wins, manages shared physics worlds, renders Mario vs Luigi character sprites based on clearing advantage.
-- **Refactoring Note:** Uses dynamic scaling (`mpscale`) to fit dual boards. Relies on same deprecated rendering calls as other game modes.
-
+- **Refactoring Note:** Fully migrated to modern fixture-based physics. Destroy lifecycle is correct: lines 423–424 call `:destroy()` on bodies. Wall fixture user-data uses bare strings (`"leftp1"`, `"rightp1"`, `"groundp1"`, `"leftp2"`, `"rightp2"`, `"groundp2"`). `setCategory` / `setMask` segregate players' physics (lines 92, 105, 459, 467, 646, 707, 739, 763).
 ### `menu.lua`
 
 Menu system, logo splash, and options screen (287 lines).

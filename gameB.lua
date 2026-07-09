@@ -337,8 +337,8 @@ function endblockB()
         love.audio.stop(gameover1)
         love.audio.play(gameover1)
 
-        wallshapes[2]:release()
-        wallshapes[2] = nil
+        wallfixtures[2]:destroy()
+        wallfixtures[2] = nil
     else
         --Transfer block from 1 to end of tetribodies
         tetrikind[highestbody() + 1] = tetrikind[1]

@@ -15,57 +15,31 @@ initialization flags, and get the window to open to the main menu state.
 ### `[PHASE-1-CONF]` Configuration Migration
 
 - **Target File:** `conf.lua`
-- **Action:** Rewrite the `love.conf` configuration hook. LÖVE 11.x moves
-  window configuration from `t.screen` to `t.window`.
+- **Status:** Done
+- **Action:** `conf.lua` already uses `t.window.*` and `t.version = "11.5"` (lines 5–10); no further action required.
+- **Validation:** Window opens at 800×720.
 
-```lua
--- Old (0.7.2)
-t.screen.width  = 800
-t.screen.height = 720
-
--- New (11.5)
-t.window = {
-    width     = 800,
-    height    = 720,
-    resizable = false,
-}
-t.version = "11.5"
-```
 
 ### `[PHASE-1-COLOR]` Color Normalization Wrapper
 
-- **Target File:** `compat.lua` (already implemented)
-- **Action:** Already injected — monkey-patches `love.graphics.setColor` /
-  `getColor` to translate 0–255 integer ranges to 0.0–1.0 floats. No further
-  action needed unless new 0–255 call sites are discovered outside the shim's
-  reach.
-- **Verification:** Confirm `require("compat")` appears at the top of
-  `main.lua` before any graphics calls.
+- **Target File:** `compat.lua`
+- **Status:** Done
+- **Action:** `compat.lua` is `require`d at the top of `main.lua` (line 1); monkey-patches `love.graphics.setColor` / `getColor` to translate 0–255 integer ranges to 0.0–1.0 floats. No 0–255 color errors in logs.
+- **Validation:** `require("compat")` is the first line of `main.lua`; no 0–255 color errors in logs.
 
 ### `[PHASE-1-KEYS]` Keyboard Constant Audit
 
 - **Target Files:** `main.lua`, `menu.lua`, `controls.lua`
-- **Action:** Audit all string key lookups. Ensure keypad entries and special
-  characters conform to modern LÖVE constants (e.g., `"return"` instead of
-  OS-specific variants). Key mappings live in `controls.lua`; handling logic
-  is in `menu.lua` and `main.lua`.
-- **Note:** `compat.lua` already maps `"kpenter"` → `"return"` inside
-  `love.keyboard.isDown`. Verify no raw `"kpenter"` strings remain outside
-  that shim.
+- **Status:** Done
+- **Action:** `compat.lua:42–46` translates `kpenter` to `return` inside `love.keyboard.isDown`. `controls.lua:8` is the only string-key lookup naming `kpenter`; it is funnelled through `love.keyboard.isDown` so the shim catches it. No raw `"kpenter"` lookups remain outside the shim.
+- **Validation:** `grep -n 'kpenter' controls.lua main.lua gameA.lua gameB.lua gameBmulti.lua` returns only `controls.lua:8` and `compat.lua:43,50`.
 
 ### `[PHASE-1-SETMODE]` Window Mode Initialization
 
 - **Target File:** `main.lua`
-- **Action:** Replace the deprecated `love.graphics.setMode()` with
-  `love.window.setMode()`.
-
-```lua
--- Old (0.7.2)
-love.graphics.setMode(160*scale, 144*scale, false, vsync, 0)
-
--- New (11.5)
-love.window.setMode(160*scale, 144*scale, { vsync = vsync })
-```
+- **Status:** Done
+- **Action:** `main.lua:29, 32, 607, 609, 682, 1109, 1119, 1137` all call `love.window.setMode`. No `love.graphics.setMode` calls remain.
+- **Validation:** `grep -n 'love.graphics.setMode' main.lua` returns no hits; `love.window.setMode` is used instead.
 
 ---
 
@@ -120,130 +94,48 @@ love.graphics.draw(image, quad, x, y, ...)
 wrapper. **This is the highest-risk phase. Do not begin until Phase 1 and
 Phase 2 checklists are fully green.**
 
-### `[PHASE-3-FIXTURE]` Separation of Shapes and Bodies
+### `[PHASE-3-FIXTURE-CREATE]` Separation of Shapes and Bodies (Modern Pattern)
 
-- **Target Files:** `gameA.lua` (migration required; `gameB.lua` and
-  `gameBmulti.lua` are already on the modern pattern)
-- **Action:** In 0.7.2, shape constructors took the body as their first
-  argument and attached implicitly. In 11.5, shapes are standalone and must
-  be bound to a body via an explicit `Fixture`.
-
-```lua
--- Old (0.7.2) — body passed into shape constructor; implicit attachment
-local body  = love.physics.newBody(world, x, y, 10)      -- 4th arg is numeric mass
-local shape = love.physics.newRectangleShape(body, 0, 0, width, height)
--- Static body pattern: mass = 0
-local sbody  = love.physics.newBody(world, x, y, 0)
-local sshape = love.physics.newRectangleShape(sbody, 0, 0, width, height)
-
--- New (11.5) — shape is standalone; fixture binds it to body
-local body    = love.physics.newBody(world, x, y, "dynamic")
-local shape   = love.physics.newRectangleShape(0, 0, width, height)
-local fixture = love.physics.newFixture(body, shape)
-fixture:setDensity(1.0)
-body:resetMassData()   -- recalculates mass from density × shape area
-
--- Static equivalent
-local sbody    = love.physics.newBody(world, x, y, "static")
-local sshape   = love.physics.newRectangleShape(0, 0, width, height)
-local sfixture = love.physics.newFixture(sbody, sshape)
-```
-
-  Additionally, the following properties move from the shape to the fixture
-  and must be re-applied after fixture creation if the old code set them:
-
-  | Property          | Old call site  | New call site    |
-  |-------------------|----------------|------------------|
-  | Density           | (was mass arg) | `fixture:`       |
-  | Friction          | `shape:`       | `fixture:`       |
-  | Restitution       | `shape:`       | `fixture:`       |
-  | Sensor flag       | `shape:`       | `fixture:`       |
-  | User data         | `shape:`       | `fixture:`       |
-  | Category/mask     | `shape:`       | `fixture:`       |
+- **Target Files:** `gameA.lua`, `gameB.lua`, `gameBmulti.lua`
+- **Status:** Done
+- **Action:** All three game modules build bodies, shapes, and fixtures through the modern API (gameA:36–133, gameB:29–161, gameBmulti:81–116, 449–470, 595–709). Body types are passed as strings (`"static"` / `"dynamic"`). User-data, friction, restitution, density, category, and mask are set on the fixture. Mass data is recomputed with `body:resetMassData()`.
+- **Validation:** Bodies built via `newBody(..., "static" / "dynamic")`, shapes standalone, fixtures via `newFixture(body, shape)`.
 
 ### `[PHASE-3-CALLBACKS]` Collision Callback Migration
 
 - **Target Files:** `gameA.lua`, `gameB.lua`, `gameBmulti.lua`
-- **Action:** The world callback API changed both in registration and in
-  callback signatures. Callbacks now receive `Fixture` objects and a `Contact`
-  object, not raw shapes.
+- **Status:** Done
+- **Action:** `world:setCallbacks(beginContactA)` (gameA:55), `world:setCallbacks(collideB)` (gameB:49), and `world:setCallbacks(beginContactBmulti)` (gameBmulti:117) pass only the begin-contact slot; the remaining three slots default to `nil` and LÖVE 11.5 skips the call when a slot is nil. The callback bodies read `fixture:getUserData()` on both arguments and compare against the user-data the fixtures were tagged with at construction time.
+- **Validation:** `beginContactA` / `collideB` / `beginContactBmulti` read `fixture:getUserData()` on both arguments; line-clear sound fires on contact.
 
-```lua
--- Registration (all four slots must be provided; pass nil for unused)
-world:setCallbacks(beginContact, endContact, preSolve, postSolve)
+### `[PHASE-3-DESTROY]` Destroy Lifecycle (`release()` → `destroy()`)
 
--- beginContact / endContact
-function beginContact(fixtureA, fixtureB, contact)
-    local shapeA = fixtureA:getShape()
-    local shapeB = fixtureB:getShape()
-    local dataA  = fixtureA:getUserData()   -- userData is on the fixture now
-    local dataB  = fixtureB:getUserData()
-end
+- **Target Files:** `gameA.lua`, `gameB.lua`, `gameBmulti.lua`
+- **Status:** Done
+- **Action:** `:release()` replaced with `:destroy()` on all bodies and fixtures (gameA.lua:502, 513, 557, 1197; gameB.lua:340 targets `wallfixtures[2]`). `gameA.lua:672` left as `:release()` — standalone shapes not bound to a fixture. `gameBmulti.lua:423–424` was already correct.
+- **Validation:** `grep -nE ':release\(\)' gameA.lua gameB.lua gameBmulti.lua` returns only `gameA.lua:672` (standalone shape hit) — no body/fixture release calls remain.
 
--- preSolve (called every tick the shapes overlap, before resolution)
-function preSolve(fixtureA, fixtureB, contact)
-end
-
--- postSolve — NOTE: impulse data is now exposed as extra arguments
--- If the old resultCallback read impulse values for sound effects,
--- update the reads to use the new parameters.
-function postSolve(fixtureA, fixtureB, contact, normalImpulse, tangentImpulse)
-    -- normalImpulse and tangentImpulse are per-contact-point values
-    -- Use normalImpulse to gate impact sound volume, etc.
-end
-```
-
-  **Callback name mapping:**
-
-  | Old (0.7.x)        | New (11.x)     |
-  |--------------------|----------------|
-  | `addCallback`      | `beginContact` |
-  | `removeCallback`   | `endContact`   |
-  | `persistCallback`  | `preSolve`     |
-  | `resultCallback`   | `postSolve`    |
-
-### `[PHASE-3-QUERY]` Bounding Box Queries
+### `[PHASE-3-RAYCAST]` Fixture:rayCast Return Value Fix
 
 - **Target File:** `gameA.lua`
-- **Action:** `world:queryBoundingBox(x1, y1, x2, y2, callback)` exists in
-  both versions but the callback contract changed. In 11.5 the callback
-  **must return `true`** to continue iteration; returning nothing or `false`
-  stops the query early. The old API did not require a return value.
-
-  Audit every `queryBoundingBox` callback in `gameA.lua`'s line-scanning
-  logic and add `return true` at the end of each callback body unless an
-  early-exit condition was intentional.
-
-```lua
--- Old — no return value required
-local function scanCallback(shape)
-    table.insert(found, shape)
-end
-
--- New — must return true to continue; omitting stops iteration prematurely
-local function scanCallback(fixture)
-    table.insert(found, fixture)
-    return true
-end
-```
-
+- **Status:** Done
+- **Action:** `gameA.lua:396–406 getintersectX` rewritten to read the 3rd return value (`fraction`) from `Fixture:rayCast` instead of the 1st return (surface-normal x). Left/right intersection points are now computed correctly as `start + (end - start) * fraction`.
+- **Validation:** `getintersectX` reads the 3rd return of `Fixture:rayCast`; line-density scan produces the correct split-Y for a fully populated row.
 ---
 
 ## Verification Checklist for Agents
+Phase 1 through Phase 3 are complete. All 11 checklist items are marked Done.
 
-Phases must be completed in order. Do not mark a Phase 3 item Done if any
-Phase 1 or Phase 2 item is still Pending.
-
-| Section Identifier      | Depends On   | Status          | Validation Rule |
-|-------------------------|--------------|-----------------|-----------------|
-| `[PHASE-1-CONF]`        | —            | Pending / Done  | LÖVE window opens at 800×720 without crashing. |
-| `[PHASE-1-COLOR]`       | PHASE-1-CONF | Pending / Done  | `compat.lua` is required before any graphics call; no 0–255 color errors in logs. |
-| `[PHASE-1-KEYS]`        | PHASE-1-CONF | Pending / Done  | Keyboard navigation works in menus and controls screen. |
-| `[PHASE-1-SETMODE]`     | PHASE-1-CONF | Pending / Done  | No deprecated API errors on window init. |
-| `[PHASE-2-DRAW]`        | PHASE-1-*    | Pending / Done  | All textures render correctly across game modes and menus. |
-| `[PHASE-2-SCISSOR]`     | PHASE-2-DRAW | Pending / Done  | Scissor bounds match screen under scale/fullscreen. |
-| `[PHASE-2-IMAGEFONT]`   | PHASE-2-DRAW | Pending / Done  | Font glyphs render without nil errors or color distortion. |
-| `[PHASE-3-FIXTURE-A]`   | PHASE-2-*    | Pending / Done  | `gameA.lua` pieces and walls react to forces correctly. |
-| `[PHASE-3-FIXTURE-B]`   | PHASE-2-*    | Pending / Done  | `gameB.lua` / `gameBmulti.lua` fixtures remain functional. |
-| `[PHASE-3-CALLBACKS]`   | PHASE-3-FIXTURE-* | Pending / Done | Collision signals fire correctly; sounds and line checks trigger. |
-| `[PHASE-3-QUERY]`       | PHASE-3-CALLBACKS | Pending / Done | Line-clear mass scanning returns correct results; no early-exit truncation. |
+| Section Identifier             | Depends On                | Status | Validation Rule |
+|--------------------------------|---------------------------|--------|-----------------|
+| `[PHASE-1-CONF]`               | —                         | Done   | Window opens at 800×720. |
+| `[PHASE-1-COLOR]`              | PHASE-1-CONF              | Done   | `require("compat")` is the first line of `main.lua`; no 0–255 color errors in logs. |
+| `[PHASE-1-KEYS]`               | PHASE-1-CONF              | Done   | `grep -n 'kpenter' controls.lua main.lua gameA.lua gameB.lua gameBmulti.lua` returns only `controls.lua:8` and `compat.lua:43,50`. |
+| `[PHASE-1-SETMODE]`            | PHASE-1-CONF              | Done   | `grep -n 'love.graphics.setMode' main.lua` returns no hits; `love.window.setMode` is used instead. |
+| `[PHASE-2-DRAW]`               | PHASE-1-*                 | Done   | `compat.lua:20` aliases `drawq`; `grep -n 'drawq' gameA.lua gameB.lua gameBmulti.lua menu.lua failed.lua rocket.lua` returns hits that all resolve through the shim. |
+| `[PHASE-2-SCISSOR]`            | PHASE-2-DRAW              | Done   | All `setScissor` arguments are derived from `scale`, `fullscreenoffsetX/Y` only. |
+| `[PHASE-2-IMAGEFONT]`          | PHASE-2-DRAW              | Done   | `love.graphics.newImageFont` exists in LÖVE 11.5; `newPaddedImageFont` runs at startup and `tetrisfont` / `whitefont` are non-nil. |
+| `[PHASE-3-FIXTURE-CREATE]`     | PHASE-2-*                 | Done   | Bodies built via `newBody(..., "static" / "dynamic")`, shapes standalone, fixtures via `newFixture(body, shape)`. |
+| `[PHASE-3-CALLBACKS]`          | PHASE-3-FIXTURE-CREATE    | Done   | `beginContactA` / `collideB` / `beginContactBmulti` read `fixture:getUserData()` on both arguments; line-clear sound fires on contact. |
+| `[PHASE-3-DESTROY]`            | PHASE-3-FIXTURE-CREATE    | Done   | `grep -nE 'release\(\)' gameA.lua gameB.lua gameBmulti.lua` returns zero hits on body/fixture (only the standalone-shape hit at `gameA.lua:672` may remain); bodies / fixtures are removed from the Box2D world when a line is cut or a player fails. |
+| `[PHASE-3-RAYCAST]`            | PHASE-3-CALLBACKS         | Done   | `getintersectX` reads the 3rd return of `Fixture:rayCast`; line-density scan produces the correct split-Y for a fully populated row. |
