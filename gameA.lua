@@ -220,7 +220,7 @@ function gameA_draw()
 
     --line density counter
     for i = 1, 18 do
-        local density = linearea[19 - i] / 1024 / linecleartreshold
+        local density = linearea[i] / 1024 / linecleartreshold
         if density > 1 then
             density = 1
         end
