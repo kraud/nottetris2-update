@@ -7,7 +7,7 @@ function gameB_load()
 
     scorescore = 0
     levelscore = 0
-    linesscore = 40
+    linesscore = 0
     nextpiecerot = 0
 
     --PHYSICS--
