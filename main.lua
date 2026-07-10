@@ -450,18 +450,28 @@ function newPaddedImageFont(filename, glyphs)
     local source = newImageData(filename)
     local w, h = source:getWidth(), source:getHeight()
 
-    -- Find closest power-of-two.
+    -- Pad to power-of-two for GPU compatibility
     local wp = math.pow(2, math.ceil(math.log(w) / math.log(2)))
     local hp = math.pow(2, math.ceil(math.log(h) / math.log(2)))
 
-    -- Only pad if needed:
-    if wp ~= w or hp ~= h then
-        local padded = love.image.newImageData(wp, hp)
-        padded:paste(source, 0, 0)
-        return love.graphics.newImageFont(padded, glyphs)
+    -- Ensure room for a trailing spacer terminator at column w
+    if wp <= w then
+        wp = math.pow(2, math.ceil(math.log(w + 1) / math.log(2)))
     end
 
-    return love.graphics.newImageFont(source, glyphs)
+    local padded = love.image.newImageData(wp, hp)
+    padded:paste(source, 0, 0)
+
+    -- Add a spacer-color pixel right after the source data to terminate the last glyph interval.
+    -- Without this, the font scanner merges all transparent padding pixels into the last glyph,
+    -- producing a massively wide glyph that corrupts the texture atlas coordinates for every character.
+    local sr, sg, sb, sa = source:getPixel(0, 0)
+    padded:setPixel(w, 0, sr, sg, sb, sa)
+
+    -- extraspacing=1 restores the 1px inter-glyph gap that LÖVE 0.7.2's spacing parameter provided.
+    -- LÖVE 11.5's column-scanner only counts the separator column width, but the old
+    -- format used 1 spacer + 7 glyph pixels per 8px cell, requiring +1px extra advance.
+    return love.graphics.newImageFont(padded, glyphs, 1)
 end
 
 function scaleImagedata(imagedata, i)
