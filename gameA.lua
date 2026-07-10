@@ -455,6 +455,10 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                 below = false
                 coordinateproperties[i - ioffset][j] = {}
                 coordinates = getPoints2table(w)
+                -- Convert body-local to world coordinates for correct row classification
+                for y = 1, #coordinates, 2 do
+                    coordinates[y], coordinates[y + 1] = v:getWorldPoint(coordinates[y], coordinates[y + 1])
+                end
 
                 for y = 1, #coordinates, 2 do              --Every Point
                     if coordinates[y + 1] < upperline then --POINT ABOVE CUTRECT
@@ -488,7 +492,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                 else
                     cotable = getPoints2table(tetrishapes[i - ioffset][j])
                     for var = 1, #cotable, 2 do
-                        cotable[var], cotable[var + 1] = tetribodies[i - ioffset]:getLocalPoint(cotable[var],
+                        cotable[var], cotable[var + 1] = tetribodies[i - ioffset]:getWorldPoint(cotable[var],
                             cotable[var + 1])
                     end
                     tetrishapescopy[#tetrishapescopy + 1] = love.physics.newPolygonShape(unpack(cotable))
@@ -779,6 +783,11 @@ function refineshape(line, mult, bodyid, body, shapeid, shape) --refines a shape
     if leftx ~= -1 then                                        --Not sure what to do if not
         local coords = getPoints2table(tetrishapes[bodyid][shapeid])
 
+        -- Convert body-local to world coordinates for correct row math
+        for i = 1, #coords, 2 do
+            coords[i], coords[i + 1] = body:getWorldPoint(coords[i], coords[i + 1])
+        end
+
         --remove all points inside the cutting zone
         local lastcutoff
         local i = 2
@@ -817,25 +826,20 @@ function refineshape(line, mult, bodyid, body, shapeid, shape) --refines a shape
             end
         end
 
-        --create the new shape
+        --create the new shape (return world-coordinate shape)
         if #coords / 2 >= 3 and #coords / 2 <= 8 then --shape still has 3 or more points, and not over 8.
             if largeenough(coords) then
-                local newcoords = {}
-                for i = 1, #coords, 2 do
-                    newcoords[i], newcoords[i + 1] = body:getLocalPoint(coords[i], coords[i + 1])
-                end
-                return love.physics.newPolygonShape(unpack(newcoords))
+                return love.physics.newPolygonShape(unpack(coords))
             end
         else
             print("#coords")
         end
     else
         local coords = getPoints2table(tetrishapes[bodyid][shapeid])
-        local newcoords = {}
         for i = 1, #coords, 2 do
-            newcoords[i], newcoords[i + 1] = body:getLocalPoint(coords[i], coords[i + 1])
+            coords[i], coords[i + 1] = body:getWorldPoint(coords[i], coords[i + 1])
         end
-        return love.physics.newPolygonShape(unpack(newcoords))
+        return love.physics.newPolygonShape(unpack(coords))
     end
 end
 
@@ -851,6 +855,12 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
     for i = 2, #tetribodies do
         for j, k in pairs(tetrishapes[i]) do
             local coords = getPoints2table(k)
+            -- Convert body-local to world coordinates for correct row math
+            for p = 1, #coords, 2 do
+                local wx, wy = tetribodies[i]:getWorldPoint(coords[p], coords[p + 1])
+                coords[p] = wx
+                coords[p + 1] = wy
+            end
             --Get first and last involved line
             local firstline = 19
             local lastline = 0
@@ -866,6 +876,12 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
             for line = firstline, lastline do
                 if line >= 1 and line <= 18 then
                     coords = getPoints2table(k)
+                    -- Convert to world coordinates for correct clipping
+                    for p = 1, #coords, 2 do
+                        local wx, wy = tetribodies[i]:getWorldPoint(coords[p], coords[p + 1])
+                        coords[p] = wx
+                        coords[p + 1] = wy
+                    end
 
                     if line > firstline then
                         local offset = 0
