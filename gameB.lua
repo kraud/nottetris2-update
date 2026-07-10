@@ -228,7 +228,7 @@ function gameB_draw()
 
     for i, v in pairs(tetribodies) do
         x, y = v:getWorldCenter()
-        love.graphics.point(x, y)
+        love.graphics.points(x, y)
         for k, l in pairs(tetrishapes[i]) do
             points = { l:getPoints() }
             for j = 1, #points, 2 do

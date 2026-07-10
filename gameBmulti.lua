@@ -32,6 +32,8 @@ function gameBmulti_load()
 
     p1fail = false
     p2fail = false
+    endblock1 = false
+    endblock2 = false
 
     p1color = { 255, 50, 50 }
     p2color = { 50, 255, 50 }
@@ -320,7 +322,18 @@ function gameBmulti_update(dt)
         nextpiecerot = nextpiecerot - math.pi * 2
     end
 
+    endblock1 = false
+    endblock2 = false
+
     world:update(dt, 8, 3)
+
+    if endblock1 then
+        endblockp1()
+    end
+    if endblock2 then
+        endblockp2()
+    end
+
     newtime = love.timer.getTime()
     if gamestarted == false then
         if newtime - starttimer > 3 then
@@ -718,11 +731,11 @@ end
 function collideBmulti(a, b)
     if (a == "p1-" .. counterp1 and b ~= "p2-" .. counterp2) or (b == "p1-" .. counterp1 and b ~= "p2-" .. counterp2) then --One of the pieces is the current piece and the other isn't the other player's one
         if p1fail == false and a ~= "leftp1" and a ~= "rightp1" and b ~= "leftp1" and b ~= "rightp1" then
-            endblockp1()
+            endblock1 = true
         end
     elseif (a == "p2-" .. counterp2 and b ~= "p1-" .. counterp1) or (b == "p2-" .. counterp2 and a ~= "p1-" .. counterp1) then
         if p2fail == false and a ~= "leftp2" and a ~= "rightp2" and b ~= "leftp2" and b ~= "rightp2" then
-            endblockp2()
+            endblock2 = true
         end
     elseif gamestate == "gameBmulti_results" then
         if (a == "mario" and b == "resultsfloor") or (b == "mario" and a == "resultsfloor") then
