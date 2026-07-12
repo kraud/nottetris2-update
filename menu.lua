@@ -189,7 +189,7 @@ function menu_draw()
 		love.graphics.draw(volumeslider, 71*scale+round(76*hue*scale), 31*scale, 0, scale, scale)
 		
 		--blend out unavailable scales
-		for i = 2, 7 do
+		for i = 2, math.max(7, maxscale) do
 			if i > maxscale then
 				love.graphics.print(" ", 75*scale+(i-1)*11*scale, 50*scale, 0, scale)
 			end

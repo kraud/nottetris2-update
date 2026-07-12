@@ -647,7 +647,19 @@ function saveoptions()
 end
 
 function autosize()
-    desktopwidth, desktopheight = love.window.getDesktopDimensions()
+    local count = love.window.getDisplayCount()
+    local maxw, maxh = 0, 0
+    for i = 1, count do
+        local w, h = love.window.getDesktopDimensions(i)
+        if w * h > maxw * maxh then
+            maxw, maxh = w, h
+        end
+    end
+    if maxw == 0 or maxh == 0 then
+        maxw, maxh = love.window.getDesktopDimensions()
+    end
+    desktopwidth = maxw
+    desktopheight = maxh
 end
 
 function togglefullscreen(fullscr)
