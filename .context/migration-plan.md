@@ -20,19 +20,18 @@ initialization flags, and get the window to open to the main menu state.
 - **Validation:** Window opens at 800×720.
 
 
-### `[PHASE-1-COLOR]` Color Normalization Wrapper
+### `[PHASE-1-COLOR]` Color Normalization (Cutover Complete)
 
-- **Target File:** `compat.lua`
+- **Target Files:** `main.lua`, `gameA.lua`, `gameBmulti.lua`, `gameBdebug.lua`, `menu.lua`
 - **Status:** Done
-- **Action:** `compat.lua` is `require`d at the top of `main.lua` (line 1); monkey-patches `love.graphics.setColor` / `getColor` to translate 0–255 integer ranges to 0.0–1.0 floats. No 0–255 color errors in logs.
-- **Validation:** `require("compat")` is the first line of `main.lua`; no 0–255 color errors in logs.
+- **Action:** The `compat.lua` shim that normalized 0–255 color arguments was removed. Every `setColor` / `setBackgroundColor` callsite now passes 0.0–1.0 floats directly. `p1color`/`p2color` tables in `gameBmulti.lua` store float triples. The shim file `compat.lua` is deleted.
+- **Validation:** Every `setColor` / `setBackgroundColor` call uses float arguments; no `(255, …)` literals remain as the first three arguments.
+### `[PHASE-1-KEYS]` Keyboard Constant Audit (Cutover Complete)
 
-### `[PHASE-1-KEYS]` Keyboard Constant Audit
-
-- **Target Files:** `main.lua`, `menu.lua`, `controls.lua`
+- **Target Files:** `main.lua`, `controls.lua`, `gameBdebug.lua`
 - **Status:** Done
-- **Action:** `compat.lua:42–46` translates `kpenter` to `return` inside `love.keyboard.isDown`. `controls.lua:8` is the only string-key lookup naming `kpenter`; it is funnelled through `love.keyboard.isDown` so the shim catches it. No raw `"kpenter"` lookups remain outside the shim.
-- **Validation:** `grep -n 'kpenter' controls.lua main.lua gameA.lua gameB.lua gameBmulti.lua` returns only `controls.lua:8` and `compat.lua:43,50`.
+- **Action:** The `kpenter→return` translation previously in `compat.lua`'s `isDown` shim is now handled locally in `controls.check` (controls.lua:23): if a binding lists `"kpenter"` and the pressed key is `"return"`, it matches. `gameBdebug.lua:489` has its own `or key == "kpenter"` check (unchanged).
+- **Validation:** `grep -n 'kpenter' controls.lua main.lua gameA.lua gameB.lua gameBmulti.lua gameBdebug.lua` returns only `controls.lua:8`, `controls.lua:23`, and `gameBdebug.lua:489`.
 
 ### `[PHASE-1-SETMODE]` Window Mode Initialization
 
@@ -47,21 +46,11 @@ initialization flags, and get the window to open to the main menu state.
 
 **Objective:** Restore visual assets, textures, and UI rendering.
 
-### `[PHASE-2-DRAW]` Deprecation of `drawq`
+### `[PHASE-2-DRAW]` Deprecation of `drawq` (Cutover Complete)
 
-- **Target Files:** `gameA.lua`, `gameB.lua`, `gameBmulti.lua`, `menu.lua`,
-  `failed.lua`, `rocket.lua`
-- **Action:** `compat.lua` already aliases `love.graphics.drawq` to
-  `love.graphics.draw`. Verify all `drawq` calls resolve through the shim.
-  Replace any that do not:
-
-```lua
--- Old
-love.graphics.drawq(image, quad, x, y, ...)
--- New
-love.graphics.draw(image, quad, x, y, ...)
-```
-
+- **Target Files:** (none — removed)
+- **Status:** Done
+- **Action:** The shim alias `love.graphics.drawq = love.graphics.draw` in `compat.lua` was removed during the post-migration cleanup. A repository-wide `grep` confirmed zero non-shim callsites for `drawq`; the deprecation left no functional code to migrate. The shim file `compat.lua` is deleted.
 ### `[PHASE-2-SCISSOR]` Scissor Coordinate Adjustments
 
 - **Target Files:** `gameA.lua`, `gameB.lua`, `gameBmulti.lua`, `failed.lua`
@@ -122,10 +111,10 @@ Phase 1 through Phase 3 are complete. All 11 checklist items are marked Done.
 | Section Identifier             | Depends On                | Status | Validation Rule |
 |--------------------------------|---------------------------|--------|-----------------|
 | `[PHASE-1-CONF]`               | —                         | Done   | Window opens at 800×720. |
-| `[PHASE-1-COLOR]`              | PHASE-1-CONF              | Done   | `require("compat")` is the first line of `main.lua`; no 0–255 color errors in logs. |
-| `[PHASE-1-KEYS]`               | PHASE-1-CONF              | Done   | `grep -n 'kpenter' controls.lua main.lua gameA.lua gameB.lua gameBmulti.lua` returns only `controls.lua:8` and `compat.lua:43,50`. |
+| `[PHASE-1-COLOR]`              | PHASE-1-CONF              | Done   | All `setColor`/`setBackgroundColor` calls pass 0.0–1.0 floats; no `(255, …)` literals remain as the first three arguments. |
+| `[PHASE-1-KEYS]`               | PHASE-1-CONF              | Done   | `grep -n 'kpenter' controls.lua main.lua gameA.lua gameB.lua gameBmulti.lua gameBdebug.lua` returns only `controls.lua:8`, `controls.lua:23`, and `gameBdebug.lua:489`. |
 | `[PHASE-1-SETMODE]`            | PHASE-1-CONF              | Done   | `grep -n 'love.graphics.setMode' main.lua` returns no hits; `love.window.setMode` is used instead. |
-| `[PHASE-2-DRAW]`               | PHASE-1-*                 | Done   | `compat.lua:20` aliases `drawq`; `grep -n 'drawq' gameA.lua gameB.lua gameBmulti.lua menu.lua failed.lua rocket.lua` returns hits that all resolve through the shim. |
+| `[PHASE-2-DRAW]`               | PHASE-1-*                 | Done   | No `drawq` references remain in source; `grep -n 'drawq' *.lua` returns no hits. |
 | `[PHASE-2-SCISSOR]`            | PHASE-2-DRAW              | Done   | All `setScissor` arguments are derived from `scale`, `fullscreenoffsetX/Y` only. |
 | `[PHASE-2-IMAGEFONT]`          | PHASE-2-DRAW              | Done   | `love.graphics.newImageFont` exists in LÖVE 11.5; `newPaddedImageFont` runs at startup and `tetrisfont` / `whitefont` are non-nil. |
 | `[PHASE-3-FIXTURE-CREATE]`     | PHASE-2-*                 | Done   | Bodies built via `newBody(..., "static" / "dynamic")`, shapes standalone, fixtures via `newFixture(body, shape)`. |

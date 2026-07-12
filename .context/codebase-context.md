@@ -13,7 +13,6 @@ Not Tetris 2 is a physics-based parody of classic Tetris. Instead of snapping ne
 ```
 nottetris2/
 ├── main.lua           # Engine lifecycle, asset loading, global state routing
-├── compat.lua         # LÖVE 0.7.2 -> 11.5 compatibility shim (colors, drawq, keys)
 ├── conf.lua           # Window configuration (800x720) and engine flags
 ├── controls.lua       # Keybinding configuration (player 1 & 2)
 ├── failed.lua         # Game over / failure screen
@@ -39,16 +38,13 @@ nottetris2/
 
 The foundational root file required by the LÖVE engine (1316 lines).
 
-- **Role:** Applies the `compat` shim, requires all game modules, handles `love.load` asset initialization (images, sounds, fonts, configuration), routes top-level callbacks (`love.update`, `love.draw`, `love.keypressed`, `love.keyreleased`) to the active gamestate module, and manages global settings (scale, fullscreen, volume, physics constants).
-- **Refactoring Note:** Migrated to LÖVE 11.5. Uses `love.window.setMode` (lines 29, 32, 607, 609, 682, 1109, 1119, 1137) and `love.textinput` (line 785). The `compat` shim is `require`d at the top (line 1). Font loading calls `love.graphics.newImageFont`, which is still present in LÖVE 11.5, via the local helper `newPaddedImageFont` (lines 449–465); the helper pads the source ImageData to a power-of-two before calling the constructor. Game state routing and asset initialization are unchanged.
+- **Role:** Requires all game modules at load time, handles `love.load` asset initialization (images, sounds, fonts, configuration), routes top-level callbacks (`love.update`, `love.draw`, `love.keypressed`, `love.keyreleased`) to the active gamestate module, and manages global settings (scale, fullscreen, volume, physics constants).
+- **Refactoring Note:** Migrated to LÖVE 11.5. Uses `love.window.setMode` (lines 29, 32, 607, 609, 682, 1109, 1119, 1137) and `love.textinput` (line 785). Font loading calls `love.graphics.newImageFont`, which is still present in LÖVE 11.5, via the local helper `newPaddedImageFont` (lines 449–465); the helper pads the source ImageData to a power-of-two before calling the constructor. Game state routing and asset initialization are unchanged.
 - **Global physics constants:** `density = 0.1` (line 168) is the fixture density applied to all tetromino fixtures in every mode. `blockrot = 10` (line 173) and `blockmass = 5` (line 172) are still defined but currently unused since the recent `setInertia` cleanup. `meter = 30` is still assigned by each game mode's `_load` but is dead code (see `piece-movement-physics.md`).
 
-### `compat.lua`
+### `compat.lua` (removed)
 
-LÖVE version compatibility shim (51 lines). Required at the top of `main.lua`.
-
-- **Role:** Monkey-patches `love.graphics.setColor` / `getColor` to translate 0-255 to 0.0-1.0 float ranges; aliases `love.graphics.drawq` to `love.graphics.draw`; mocks `love.graphics.getMode` to call `love.window.getMode`; translates legacy key constants (e.g., `kpenter` -> `return`) in `love.keyboard.isDown`.
-- **Refactoring Note:** setColor/setBackgroundColor/getColor wrapped; drawq aliased to draw; getMode/getModes routed to `love.window` equivalents; kpenter mapped to return. The shim is intentionally minimal: the only legacy key constant translated is `kpenter` (line 43). The string keys `"kp1"`, `"kp2"`, `"left"`, `"right"`, `"up"`, `"down"`, `"return"`, `"escape"`, and the letter keys used in `controls.lua` and `gameBmulti.lua` (lines 348, 353, 359, 363, 369, 384, 389, 395, 399, 405, 507, 511, 516, 520) are unchanged in LÖVE 11.5 and do not need translation.
+The LÖVE 0.7.2 compatibility shim was removed during the post-migration cleanup. All color normalization (0–255 to 0.0–1.0 floats) is handled inline at every `setColor`/`setBackgroundColor` callsite; the `kpenter→return` key alias is handled locally in `controls.check` (controls.lua:23).
 
 ### `conf.lua`
 
@@ -96,7 +92,7 @@ Debug panel / tuning surface (526 lines).
 Game mode B — two-player versus (820 lines).
 
 - **Role:** Splits screen horizontally for two simultaneous players. Tracks wins, manages shared physics worlds, renders Mario vs Luigi character sprites based on clearing advantage.
-- **Refactoring Note:** Fully migrated to modern fixture-based physics. Destroy lifecycle is correct: lines 436–437 call `:destroy()` on the two ground wall fixtures. Wall fixture user-data uses bare strings (`"leftp1"`, `"rightp1"`, `"groundp1"`, `"leftp2"`, `"rightp2"`, `"groundp2"`). `setCategory` / `setMask` segregate players' physics — `setCategory(2)` at line 94 (P1 right wall), `setCategory(3)` at line 107 (P2 left wall); `setMask` on piece fixtures at lines 658, 718; `setMask` on endgame Mario/Luigi/resultsfloor bodies at lines 466, 472, 480; `setMask` post-endblock toggles at lines 750, 774.
+- **Refactoring Note:** Fully migrated to modern fixture-based physics. Destroy lifecycle is correct: lines 436–437 call `:destroy()` on the two ground wall fixtures. Wall fixture user-data uses bare strings (`"leftp1"`, `"rightp1"`, `"groundp1"`, `"leftp2"`, `"rightp2"`, `"groundp2"`). `setCategory` / `setMask` segregate players' physics — `setCategory(2)` at line 94 (P1 right wall), `setCategory(3)` at line 107 (P2 left wall); `setMask` on piece fixtures at lines 658, 718; `setMask` on endgame Mario/Luigi bodies at lines 472, 480 (the `resultsfloor` body at line 463 carries `setUserData` only — no `setMask`, so it collides with whatever is on stage); _Note: an earlier draft of this doc listed a `setMask` at line 466 for `resultsfloor`; that line is actually `setUserData("resultsfloor")` — corrected against the source._; `setMask` post-endblock toggles at lines 750, 774.
 - **Tuning surface:** Reads `debug_params` (defined as a Lua global in `main.lua:601–610` / `618–627`) for all input forces, torques, velocity caps, and air-brake. The same table is read by gameA and gameB; the F12 panel in `gameBdebug.lua` is the editor. See `debug-params.md` for the schema.
 - **Per-player field layout:** The playfield is a 320-pixel-wide column at x=196–516 (P1) and x=516–836 (P2), with the shared divider wall at x=516. All rendering uses `mpscale` (calculated at `gameBmulti_load:11–16`) instead of the single-player `scale`, so window-mode and fullscreen-mode sizes differ from gameA/gameB.
 ### `menu.lua`

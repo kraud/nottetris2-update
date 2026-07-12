@@ -171,7 +171,7 @@ function gameA_draw()
 
             for i = 1, 18 do
                 if linesremoved[i] == true then
-                    love.graphics.setColor(r, g, b)
+                    love.graphics.setColor(r/255, g/255, b/255)
 
                     love.graphics.rectangle("fill", 14 * scale, (i - 1) * 8 * scale, 82 * scale, 8 * scale)
                 end
@@ -179,7 +179,7 @@ function gameA_draw()
         end
     end
 
-    love.graphics.setColor(255, 255, 255)
+    love.graphics.setColor(1, 1, 1)
     --Next piece
     if pause == false then
         love.graphics.draw(nextpieceimg[nextpiece], 136 * scale, 120 * scale, nextpiecerot, 1, 1,
@@ -230,11 +230,11 @@ function gameA_draw()
             color = 235 - (density / 1) * 180
         end
 
-        love.graphics.setColor(color, color, color)
+        love.graphics.setColor(color/255, color/255, color/255)
         love.graphics.rectangle("fill", 0, (i - 1) * 8 * scale, math.floor(6 * scale * density), 8 * scale)
     end
 
-    love.graphics.setColor(255, 255, 255)
+    love.graphics.setColor(1, 1, 1)
 
     ---------
     --start--

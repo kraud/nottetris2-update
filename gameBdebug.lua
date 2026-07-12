@@ -382,7 +382,7 @@ function gameBdebug_draw_panel()
     if gamestate ~= "gameBdebug" then return end
 
     love.graphics.setScissor()
-    love.graphics.setColor(255, 255, 255)
+    love.graphics.setColor(1, 1, 1)
 
     local panel_base_x = fullscreenoffsetX or 0
     local panel_base_y = (fullscreenoffsetY or 0) + 144 * scale
@@ -405,7 +405,7 @@ function gameBdebug_draw_panel()
         if panel_focus == idx then
             love.graphics.setColor(0, 0, 0)
             love.graphics.rectangle("fill", panel_base_x + 104 * scale, y, 40 * scale, 8 * scale)
-            love.graphics.setColor(255, 255, 255)
+    love.graphics.setColor(1, 1, 1)
             love.graphics.print(value_str, panel_base_x + 104 * scale, y, 0, scale)
         else
             love.graphics.print(value_str, panel_base_x + 104 * scale, y, 0, scale)
@@ -414,7 +414,7 @@ function gameBdebug_draw_panel()
         love.graphics.print(">", panel_base_x + 152 * scale, y, 0, scale)
     end
 
-    love.graphics.setColor(255, 255, 255)
+    love.graphics.setColor(1, 1, 1)
 end
 
 function gameBdebug_handle_mouse(x, y, button)

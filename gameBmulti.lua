@@ -35,8 +35,8 @@ function gameBmulti_load()
     endblock1 = false
     endblock2 = false
 
-    p1color = { 255, 50, 50 }
-    p2color = { 50, 255, 50 }
+    p1color = { 1, 50/255, 50/255 }
+    p2color = { 50/255, 1, 50/255 }
 
     --p1color = {116, 92, 73}
     --p2color = {209, 174, 145}
@@ -153,7 +153,7 @@ function gameBmulti_draw()
     --tetrishapes P1--
 
     for i, v in pairs(tetribodiesp1) do
-        love.graphics.setColor(255, 255, 255)
+        love.graphics.setColor(1, 1, 1)
         --set color:
         if gamestate == "failingBmulti" or gamestate == "failedBmulti" then
             timepassed = love.timer.getTime() - colorizetimer
@@ -175,7 +175,7 @@ function gameBmulti_draw()
     ----------------
     --tetrishapes P2--
     for i, v in pairs(tetribodiesp2) do
-        love.graphics.setColor(255, 255, 255)
+        love.graphics.setColor(1, 1, 1)
         --set color:
         if gamestate == "failingBmulti" or gamestate == "failedBmulti" then
             timepassed = love.timer.getTime() - colorizetimer
@@ -187,7 +187,7 @@ function gameBmulti_draw()
             piececenter[tetrikindp2[i]][1] * mpscale, piececenter[tetrikindp2[i]][2] * mpscale)
     end
     ----------------
-    love.graphics.setColor(255, 255, 255)
+    love.graphics.setColor(1, 1, 1)
 
     if p2fail == false and nextpiecep2 then
         --Next piece

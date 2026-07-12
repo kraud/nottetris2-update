@@ -1,4 +1,3 @@
-require("compat")
 
 function love.load()
     --requires--
@@ -137,7 +136,7 @@ function love.load()
     math.randomseed(os.time())
     math.random(); math.random(); math.random() --discarding some as they seem to tend to unrandomness.
 
-    love.graphics.setBackgroundColor(255, 255, 255)
+    love.graphics.setBackgroundColor(1, 1, 1)
 
     p1wins = 0
     p2wins = 0
