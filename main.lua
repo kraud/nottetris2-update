@@ -904,6 +904,21 @@ function love.keypressed(key, scancode, isrepeat)
             playerselection = playerselection - 1
         elseif controls.check("right", key) and playerselection < 3 then
             playerselection = playerselection + 1
+        elseif key == "f12" then
+            if not fullscreen then
+                local target_scale = scale
+                local max_for_debug = math.floor(desktopheight / (144 + 90))
+                if max_for_debug < 1 then max_for_debug = 1 end
+                if target_scale > max_for_debug then target_scale = max_for_debug end
+                love.window.setMode(160 * target_scale, (144 + 90) * target_scale, { vsync = vsync })
+            end
+            if soundenabled then
+                love.audio.stop(musictitle)
+                if musicno < 4 then
+                    love.audio.play(music[musicno])
+                end
+            end
+            gameBdebug_load()
         end
     elseif gamestate == "menu" then
         oldmusicno = musicno
@@ -922,14 +937,7 @@ function love.keypressed(key, scancode, isrepeat)
             if gameno == 1 then
                 gameA_load()
             else
-                if not fullscreen then
-                    local target_scale = scale
-                    local max_for_debug = math.floor(desktopheight / (144 + 90))
-                    if max_for_debug < 1 then max_for_debug = 1 end
-                    if target_scale > max_for_debug then target_scale = max_for_debug end
-                    love.window.setMode(160 * target_scale, (144 + 90) * target_scale, { vsync = vsync })
-                end
-                gameBdebug_load()
+                gameB_load()
             end
         elseif controls.check("left", key) then
             if selection == 2 or selection == 4 or selection == 6 then

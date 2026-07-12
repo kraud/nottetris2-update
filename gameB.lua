@@ -3,7 +3,7 @@ function gameB_load()
 
     pause = false
 
-    difficulty_speed = 100
+    difficulty_speed = debug_params.difficulty_speed
 
     scorescore = 0
     levelscore = 0
@@ -246,37 +246,37 @@ function gameB_update(dt)
 
     if gamestate == "gameB" then
         if love.keyboard.isDown("x") then
-            if tetribodies[1]:getAngularVelocity() < 12 then
-                tetribodies[1]:applyTorque(5000)
+            if tetribodies[1]:getAngularVelocity() < debug_params.angular_cap then
+                tetribodies[1]:applyTorque(debug_params.rotation_torque)
             end
         end
         if love.keyboard.isDown("y") or love.keyboard.isDown("z") or love.keyboard.isDown("w") then
-            if tetribodies[1]:getAngularVelocity() > -12 then
-                tetribodies[1]:applyTorque(-5000)
+            if tetribodies[1]:getAngularVelocity() > -debug_params.angular_cap then
+                tetribodies[1]:applyTorque(-debug_params.rotation_torque)
             end
         end
 
         if love.keyboard.isDown("left") then
             local x, y = tetribodies[1]:getWorldCenter()
-            tetribodies[1]:applyForce(-2000, 0, x, y)
+            tetribodies[1]:applyForce(-debug_params.lateral_force, 0, x, y)
         end
         if love.keyboard.isDown("right") then
             local x, y = tetribodies[1]:getWorldCenter()
-            tetribodies[1]:applyForce(2000, 0, x, y)
+            tetribodies[1]:applyForce(debug_params.lateral_force, 0, x, y)
         end
 
         local x, y = tetribodies[1]:getLinearVelocity()
         if love.keyboard.isDown("down") then
             --commented part limits the blackfallspeed
-            if y > difficulty_speed * 5 then
-                tetribodies[1]:setLinearVelocity(x, difficulty_speed * 5)
+            if y > difficulty_speed * debug_params.soft_drop_cap_mul then
+                tetribodies[1]:setLinearVelocity(x, difficulty_speed * debug_params.soft_drop_cap_mul)
             else
                 local cx, cy = tetribodies[1]:getWorldCenter()
-                tetribodies[1]:applyForce(0, 2000, cx, cy)
+                tetribodies[1]:applyForce(0, debug_params.soft_drop_force, cx, cy)
             end
         else
             if y > difficulty_speed then
-                tetribodies[1]:setLinearVelocity(x, y - 2000 * dt)
+                tetribodies[1]:setLinearVelocity(x, y - debug_params.air_brake_coeff * dt)
             end
         end
     end

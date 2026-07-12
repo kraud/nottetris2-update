@@ -4,7 +4,7 @@ function gameA_load()
     pause = false
     skipupdate = true
 
-    difficulty_speed = 100
+    difficulty_speed = debug_params.difficulty_speed
 
     cuttingtimer = lineclearduration
 
@@ -326,37 +326,37 @@ function gameA_update(dt)
 
     if gamestate == "gameA" then
         if controls.isDown("rotateright") then
-            if tetribodies[1]:getAngularVelocity() < 21 then
-                tetribodies[1]:applyTorque(10000)
+            if tetribodies[1]:getAngularVelocity() < debug_params.angular_cap then
+                tetribodies[1]:applyTorque(debug_params.rotation_torque)
             end
         end
         if controls.isDown("rotateleft") then
-            if tetribodies[1]:getAngularVelocity() > -21 then
-                tetribodies[1]:applyTorque(-10000)
+            if tetribodies[1]:getAngularVelocity() > -debug_params.angular_cap then
+                tetribodies[1]:applyTorque(-debug_params.rotation_torque)
             end
         end
 
         if controls.isDown("left") then
             local x, y = tetribodies[1]:getWorldCenter()
-            tetribodies[1]:applyForce(-2000, 0, x, y)
+            tetribodies[1]:applyForce(-debug_params.lateral_force, 0, x, y)
         end
         if controls.isDown("right") then
             local x, y = tetribodies[1]:getWorldCenter()
-            tetribodies[1]:applyForce(2000, 0, x, y)
+            tetribodies[1]:applyForce(debug_params.lateral_force, 0, x, y)
         end
 
         local x, y = tetribodies[1]:getLinearVelocity()
         if controls.isDown("down") then
             --commented part limits the blackfallspeed
-            if y > 500 then
-                tetribodies[1]:setLinearVelocity(x, 500)
+            if y > debug_params.difficulty_speed * debug_params.soft_drop_cap_mul then
+                tetribodies[1]:setLinearVelocity(x, debug_params.difficulty_speed * debug_params.soft_drop_cap_mul)
             else
                 local cx, cy = tetribodies[1]:getWorldCenter()
-                tetribodies[1]:applyForce(0, 2000, cx, cy)
+                tetribodies[1]:applyForce(0, debug_params.soft_drop_force, cx, cy)
             end
         else
             if y > difficulty_speed then
-                tetribodies[1]:setLinearVelocity(x, y - 2000 * dt)
+                tetribodies[1]:setLinearVelocity(x, y - debug_params.air_brake_coeff * dt)
             end
         end
     end
@@ -1039,7 +1039,7 @@ function checklinedensity(active) --checks all 18 lines and, if active == true, 
 
             if math.floor(linescleared / 10) > levelscore then
                 levelscore = levelscore + 1
-                difficulty_speed = 100 + levelscore * 7
+                difficulty_speed = debug_params.difficulty_speed + levelscore * 7
                 newlevelbeep = true
             end
 
