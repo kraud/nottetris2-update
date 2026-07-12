@@ -72,19 +72,12 @@ love.graphics.draw(image, quad, x, y, ...)
 ### `[PHASE-2-IMAGEFONT]` ImageFont Migration
 
 - **Target File:** `main.lua`
-- **Action:** `love.graphics.newImageFont` is removed in LÖVE 11.x.
-  Replace with `love.graphics.newFont` using a BMFont-format `.fnt` file,
-  or convert the existing image glyph sheet to a bitmap font using a tool
-  such as [bmfont](https://www.angelcode.com/products/bmfont/) or
-  [Shoebox](https://renderhjs.net/shoebox/).
-
-  If the glyph image is simple and the font is only used for score/UI
-  rendering, an acceptable fallback is to replace it with a TTF loaded via
-  `love.graphics.newFont("font.ttf", size)` and adjust any layout that
-  depended on the image font's exact glyph widths.
-
-  Do not leave `newImageFont` calls in place — they will throw a nil error
-  at startup in 11.x.
+- **Action:** `love.graphics.newImageFont` is still present in LÖVE 11.5.
+  `main.lua:460–485`'s `newPaddedImageFont` helper pads the source ImageData
+  to power-of-two dimensions and calls `love.graphics.newImageFont(padded, glyphs, 1)`
+  directly. The `+1` extraspacing restores the inter-glyph advance that the 0.7.2
+  font format provided. No migration was needed — only the power-of-two padding
+  workaround.
 
 ---
 
@@ -112,7 +105,7 @@ Phase 2 checklists are fully green.**
 
 - **Target Files:** `gameA.lua`, `gameB.lua`, `gameBmulti.lua`
 - **Status:** Done
-- **Action:** `:release()` replaced with `:destroy()` on all bodies and fixtures (gameA.lua:502, 513, 557, 1197; gameB.lua:340 targets `wallfixtures[2]`). `gameA.lua:672` left as `:release()` — standalone shapes not bound to a fixture. `gameBmulti.lua:423–424` was already correct.
+- **Action:** `:release()` replaced with `:destroy()` on all bodies and fixtures (gameA.lua:502, 513, 557, 1197; gameB.lua:340 targets `wallfixtures[2]`). `gameA.lua:672` left as `:release()` — standalone shapes not bound to a fixture. `gameBmulti.lua:436–437` was already correct.
 - **Validation:** `grep -nE ':release\(\)' gameA.lua gameB.lua gameBmulti.lua` returns only `gameA.lua:672` (standalone shape hit) — no body/fixture release calls remain.
 
 ### `[PHASE-3-RAYCAST]` Fixture:rayCast Return Value Fix
@@ -137,5 +130,6 @@ Phase 1 through Phase 3 are complete. All 11 checklist items are marked Done.
 | `[PHASE-2-IMAGEFONT]`          | PHASE-2-DRAW              | Done   | `love.graphics.newImageFont` exists in LÖVE 11.5; `newPaddedImageFont` runs at startup and `tetrisfont` / `whitefont` are non-nil. |
 | `[PHASE-3-FIXTURE-CREATE]`     | PHASE-2-*                 | Done   | Bodies built via `newBody(..., "static" / "dynamic")`, shapes standalone, fixtures via `newFixture(body, shape)`. |
 | `[PHASE-3-CALLBACKS]`          | PHASE-3-FIXTURE-CREATE    | Done   | `beginContactA` / `collideB` / `beginContactBmulti` read `fixture:getUserData()` on both arguments; line-clear sound fires on contact. |
-| `[PHASE-3-DESTROY]`            | PHASE-3-FIXTURE-CREATE    | Done   | `grep -nE 'release\(\)' gameA.lua gameB.lua gameBmulti.lua` returns zero hits on body/fixture (only the standalone-shape hit at `gameA.lua:672` may remain); bodies / fixtures are removed from the Box2D world when a line is cut or a player fails. |
+| `[PHASE-3-DESTROY]`            | PHASE-3-FIXTURE-CREATE    | Done   | `grep -nE 'release\(\)' gameA.lua gameB.lua gameBmulti.lua` returns zero hits on body/fixture (only the standalone-shape hit at `gameA.lua:672` may remain); bodies / fixtures are removed from the Box2D world when a line is cut or a player fails. `gameBmulti.lua:436–437` are the current destroy lines for the ground wall fixtures. |
 | `[PHASE-3-RAYCAST]`            | PHASE-3-CALLBACKS         | Done   | `getintersectX` reads the 3rd return of `Fixture:rayCast`; line-density scan produces the correct split-Y for a fully populated row. |
+| `[POST-MIGRATION-PHYSICS-DENSITY]` | — | Done | All three game modes read `debug_params`; fixtures use `density = 0.1`; `setInertia` is gone. See `piece-movement-physics.md` and `gameBdebug.lua` for the current state. |

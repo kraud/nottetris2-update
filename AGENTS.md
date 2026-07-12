@@ -10,6 +10,7 @@ Not Tetris 2 is a LÖVE 11.5 physics-based parody of Tetris (originally built fo
 | `migration-plan.md` | LÖVE 0.7.2 → 11.5 migration phases (engine boot, graphics, Box2D refactor) and the verification checklist; phases 1–3 are marked Done. |
 | `physics-refactor-guide.md` | Cheatsheet for the Box2D shape/fixture migration: bodies, fixtures, sensors, user data, collision filtering, callback signatures. |
 | `piece-movement-physics.md` | Catalogue of every physics parameter that affects piece feel in `gameA`, `gameB`, `gameBmulti`, plus a diagnosis of the per-mode feel inconsistency. |
+| `debug-params.md` | Schema and defaults for the `debug_params` runtime tuning surface used by all three game modes; edited live via the F12 panel. |
 | `agent-env.md` | How to run the game from source on macOS and read debug output during the test loop. |
 
 ## Running the game
