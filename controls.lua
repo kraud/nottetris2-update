@@ -20,7 +20,7 @@ controls.settings.rotaterightp2 = {"key", {"p"}}
 function controls.check(t, key)
 	if controls.settings[t][1] == "key" then
 		for i = 1, #controls.settings[t][2] do
-			if key == controls.settings[t][2][i] then
+			if key == controls.settings[t][2][i] or (controls.settings[t][2][i] == "kpenter" and key == "return") then
 				return true
 			end
 		end

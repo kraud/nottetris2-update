@@ -1,0 +1,16 @@
+# OS files
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# LÖVE build artifacts
+*.love
+
+# Editor/IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+.omp-plans

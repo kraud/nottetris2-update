@@ -24,10 +24,14 @@ function menu_load()
 end
 
 function menu_draw()
-	--FULLSCREEN OFFSET
-	if fullscreen then
-		love.graphics.translate(fullscreenoffsetX, fullscreenoffsetY)
-	end
+    -- Reset draw state for menu rendering
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.setScissor()
+
+    --FULLSCREEN OFFSET
+    if fullscreen then
+        love.graphics.translate(fullscreenoffsetX, fullscreenoffsetY)
+    end
 
 	if gamestate == "logo" then		
 		if logotime <= logoduration then
@@ -185,7 +189,7 @@ function menu_draw()
 		love.graphics.draw(volumeslider, 71*scale+round(76*hue*scale), 31*scale, 0, scale, scale)
 		
 		--blend out unavailable scales
-		for i = 2, 7 do
+		for i = 2, math.max(7, maxscale) do
 			if i > maxscale then
 				love.graphics.print(" ", 75*scale+(i-1)*11*scale, 50*scale, 0, scale)
 			end

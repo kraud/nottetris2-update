@@ -1,14 +1,39 @@
-function gameB_load()
-    gamestate = "gameB"
+function gameBdebug_load()
+    gamestate = "gameBdebug"
 
     pause = false
 
-    difficulty_speed = debug_params.difficulty_speed
+    difficulty_speed = 100
 
     scorescore = 0
     levelscore = 0
     linesscore = 0
     nextpiecerot = 0
+
+    panel_height = 90
+    params = debug_params or {
+        difficulty_speed   = 100,
+        lateral_force      = 2000,
+        rotation_torque    = 5000,
+        angular_cap        = 12,
+        soft_drop_force    = 2000,
+        soft_drop_cap_mul  = 5,
+        air_brake_coeff    = 2000,
+        step               = 100,
+    }
+    panel_focus = nil
+    panel_editing = ""
+    panel_rows = {
+        { "difficulty_speed",   "difficulty" },
+        { "lateral_force",      "lateral" },
+        { "rotation_torque",    "rot torque" },
+        { "angular_cap",        "rot cap" },
+        { "soft_drop_force",    "soft drop" },
+        { "soft_drop_cap_mul",  "soft cap" },
+        { "air_brake_coeff",    "air brake" },
+        { "step",               "step" },
+    }
+    predebugscale = scale
 
     --PHYSICS--
     meter = 30
@@ -46,27 +71,27 @@ function gameB_load()
     wallfixtures[3] = love.physics.newFixture(wallbodies, wallshapes[3])
     wallfixtures[3]:setUserData("ceiling")
 
-    world:setCallbacks(collideB)
+    world:setCallbacks(collideBdebug)
     -----------
 
     --FIRST "nextpiece"-
     nextpiece = 1 --math.random(7)
 
-    game_addTetriB()
+    gameBdebug_addTetri()
     ----------------
 end
 
-function game_addTetriB()
+function gameBdebug_addTetri()
     --NEW BLOCK--
     randomblock = nextpiece
-    createtetriB(randomblock, 1, 224, blockstartY)
-    tetribodies[1]:setLinearVelocity(0, difficulty_speed)
+    createtetriBdebug(randomblock, 1, 224, blockstartY)
+    tetribodies[1]:setLinearVelocity(0, params.difficulty_speed)
 
     --RANDOMIZE
     nextpiece = math.random(7)
 end
 
-function createtetriB(i, uniqueid, x, y)
+function createtetriBdebug(i, uniqueid, x, y)
     tetriimages[uniqueid] = newPaddedImage("graphics/pieces/" .. i .. ".png", scale)
     tetrikind[uniqueid] = i
     tetrifixtures[uniqueid] = {}
@@ -160,7 +185,7 @@ function createtetriB(i, uniqueid, x, y)
     end
 end
 
-function gameB_draw()
+function gameBdebug_draw()
     --FULLSCREEN OFFSET
     if fullscreen then
         love.graphics.translate(fullscreenoffsetX, fullscreenoffsetY)
@@ -230,11 +255,13 @@ function gameB_draw()
         --scissor
         love.graphics.setScissor()
     end
+
+    gameBdebug_draw_panel()
 end
 
-function gameB_update(dt)
+function gameBdebug_update(dt)
     if newblock then
-        game_addTetriB()
+        gameBdebug_addTetri()
         newblock = false
     end
 
@@ -244,39 +271,39 @@ function gameB_update(dt)
         nextpiecerot = nextpiecerot - math.pi * 2
     end
 
-    if gamestate == "gameB" then
+    if gamestate == "gameBdebug" then
         if love.keyboard.isDown("x") then
-            if tetribodies[1]:getAngularVelocity() < debug_params.angular_cap then
-                tetribodies[1]:applyTorque(debug_params.rotation_torque)
+            if tetribodies[1]:getAngularVelocity() < params.angular_cap then
+                tetribodies[1]:applyTorque(params.rotation_torque)
             end
         end
         if love.keyboard.isDown("y") or love.keyboard.isDown("z") or love.keyboard.isDown("w") then
-            if tetribodies[1]:getAngularVelocity() > -debug_params.angular_cap then
-                tetribodies[1]:applyTorque(-debug_params.rotation_torque)
+            if tetribodies[1]:getAngularVelocity() > -params.angular_cap then
+                tetribodies[1]:applyTorque(-params.rotation_torque)
             end
         end
 
         if love.keyboard.isDown("left") then
             local x, y = tetribodies[1]:getWorldCenter()
-            tetribodies[1]:applyForce(-debug_params.lateral_force, 0, x, y)
+            tetribodies[1]:applyForce(-params.lateral_force, 0, x, y)
         end
         if love.keyboard.isDown("right") then
             local x, y = tetribodies[1]:getWorldCenter()
-            tetribodies[1]:applyForce(debug_params.lateral_force, 0, x, y)
+            tetribodies[1]:applyForce(params.lateral_force, 0, x, y)
         end
 
         local x, y = tetribodies[1]:getLinearVelocity()
         if love.keyboard.isDown("down") then
             --commented part limits the blackfallspeed
-            if y > difficulty_speed * debug_params.soft_drop_cap_mul then
-                tetribodies[1]:setLinearVelocity(x, difficulty_speed * debug_params.soft_drop_cap_mul)
+            if y > params.difficulty_speed * params.soft_drop_cap_mul then
+                tetribodies[1]:setLinearVelocity(x, params.difficulty_speed * params.soft_drop_cap_mul)
             else
                 local cx, cy = tetribodies[1]:getWorldCenter()
-                tetribodies[1]:applyForce(0, debug_params.soft_drop_force, cx, cy)
+                tetribodies[1]:applyForce(0, params.soft_drop_force, cx, cy)
             end
         else
-            if y > difficulty_speed then
-                tetribodies[1]:setLinearVelocity(x, y - debug_params.air_brake_coeff * dt)
+            if y > params.difficulty_speed then
+                tetribodies[1]:setLinearVelocity(x, y - params.air_brake_coeff * dt)
             end
         end
     end
@@ -297,18 +324,18 @@ function gameB_update(dt)
     end
 end
 
-function collideB(a, b)
+function collideBdebug(a, b)
     a, b = a:getUserData(), b:getUserData()
     if a == 1 or b == 1 then
         if a ~= "left" and a ~= "right" and b ~= "left" and b ~= "right" then
-            if gamestate == "gameB" then
-                endblockB()
+            if gamestate == "gameBdebug" then
+                endblockBdebug()
             end
         end
     end
 end
 
-function endblockB()
+function endblockBdebug()
     if tetribodies[1]:getY() < losingY then
         --LOSE--
         gamestate = "failingB"
@@ -348,5 +375,152 @@ function endblockB()
         love.audio.play(blockfall)
 
         newblock = true
+    end
+end
+
+function gameBdebug_draw_panel()
+    if gamestate ~= "gameBdebug" then return end
+
+    love.graphics.setScissor()
+    love.graphics.setColor(1, 1, 1)
+
+    local panel_base_x = fullscreenoffsetX or 0
+    local panel_base_y = (fullscreenoffsetY or 0) + 144 * scale
+
+    love.graphics.print("debug params", panel_base_x, panel_base_y, 0, scale)
+
+    for idx = 1, 8 do
+        local y = panel_base_y + (10 + (idx - 1) * 10) * scale
+
+        love.graphics.print(panel_rows[idx][2], panel_base_x, y, 0, scale)
+        love.graphics.print("<", panel_base_x + 96 * scale, y, 0, scale)
+
+        local value_str
+        if panel_focus == idx then
+            value_str = panel_editing
+        else
+            value_str = tostring(params[panel_rows[idx][1]])
+        end
+
+        if panel_focus == idx then
+            love.graphics.setColor(0, 0, 0)
+            love.graphics.rectangle("fill", panel_base_x + 104 * scale, y, 40 * scale, 8 * scale)
+    love.graphics.setColor(1, 1, 1)
+            love.graphics.print(value_str, panel_base_x + 104 * scale, y, 0, scale)
+        else
+            love.graphics.print(value_str, panel_base_x + 104 * scale, y, 0, scale)
+        end
+
+        love.graphics.print(">", panel_base_x + 152 * scale, y, 0, scale)
+    end
+
+    love.graphics.setColor(1, 1, 1)
+end
+
+function gameBdebug_handle_mouse(x, y, button)
+    if gamestate ~= "gameBdebug" or button ~= 1 then return end
+
+    local local_x = (x - (fullscreenoffsetX or 0)) / scale
+    local local_y = (y - (fullscreenoffsetY or 0)) / scale - 144
+
+    if local_y < 0 or local_y >= panel_height then return end
+
+    if local_y < 10 then return end
+    local row_idx = math.floor((local_y - 10) / 10) + 1
+    if row_idx < 1 or row_idx > 8 then return end
+
+    local key = panel_rows[row_idx][1]
+
+    if local_x < 96 then
+        return
+    end
+
+    if local_x >= 96 and local_x < 104 then
+        -- left arrow
+        if panel_focus == row_idx then
+            local n = tonumber(panel_editing)
+            if n ~= nil then
+                params[key] = n
+                if key == "step" then params.step = math.max(1, params.step) end
+            end
+        end
+        if key == "step" then
+            params.step = math.max(1, params.step - 10)
+        else
+            params[key] = params[key] - params.step
+        end
+        return
+    end
+
+    if local_x >= 104 and local_x < 152 then
+        -- field area
+        panel_focus = row_idx
+        panel_editing = tostring(params[key])
+        return
+    end
+
+    if local_x >= 152 then
+        -- right arrow
+        if panel_focus == row_idx then
+            local n = tonumber(panel_editing)
+            if n ~= nil then
+                params[key] = n
+                if key == "step" then params.step = math.max(1, params.step) end
+            end
+        end
+        if key == "step" then
+            params.step = params.step == 1 and 10 or params.step + 10
+        else
+            params[key] = params[key] + params.step
+        end
+        return
+    end
+end
+
+function gameBdebug_handle_keypressed(key)
+    if gamestate ~= "gameBdebug" or panel_focus == nil then return false end
+
+    if key == "escape" then
+        panel_focus = nil
+        panel_editing = ""
+        return true
+    end
+
+    if key == "return" or key == "kpenter" then
+        local n = tonumber(panel_editing)
+        if n ~= nil then
+            params[panel_rows[panel_focus][1]] = n
+            if panel_rows[panel_focus][1] == "step" then
+                params.step = math.max(1, params.step)
+            end
+        end
+        panel_focus = nil
+        panel_editing = ""
+        return true
+    end
+    if key == "-" then
+        if panel_editing:sub(1, 1) ~= "-" and panel_editing:find("%.") == nil then
+            panel_editing = "-" .. panel_editing
+        end
+        return true
+    end
+
+    if key == "." then
+        if panel_editing:find("%.") == nil and panel_editing:sub(1, 1) ~= "-" then
+            panel_editing = panel_editing .. "."
+        end
+        return true
+    end
+
+    return false
+end
+
+function gameBdebug_handle_textinput(text)
+    if gamestate ~= "gameBdebug" or panel_focus == nil then return end
+
+    if panel_editing:len() >= 9 then return end
+
+    if text:match("^[0-9]$") then
+        panel_editing = panel_editing .. text
     end
 end
