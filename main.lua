@@ -5,6 +5,7 @@ function love.load()
     require "controls"
     require "gameB"
     require "gameBmulti"
+    require "gameBdebug"
     require "gameA"
     require "menu"
     require "failed"
@@ -347,9 +348,13 @@ function love.update(dt)
         if pause == false then
             gameA_update(dt)
         end
-    elseif gamestate == "gameB" or gamestate == "failingB" then
+    elseif gamestate == "gameB" or gamestate == "gameBdebug" or gamestate == "failingB" then
         if pause == false then
-            gameB_update(dt)
+            if gamestate == "gameBdebug" then
+                gameBdebug_update(dt)
+            else
+                gameB_update(dt)
+            end
         end
     elseif gamestate == "gameBmulti" or gamestate == "failingBmulti" or gamestate == "failedBmulti" or gamestate == "gameBmulti_results" then
         gameBmulti_update(dt)
@@ -363,8 +368,12 @@ function love.draw()
         menu_draw()
     elseif gamestate == "gameA" or gamestate == "failingA" then
         gameA_draw()
-    elseif gamestate == "gameB" or gamestate == "failingB" then
-        gameB_draw()
+    elseif gamestate == "gameB" or gamestate == "gameBdebug" or gamestate == "failingB" then
+        if gamestate == "gameBdebug" then
+            gameBdebug_draw()
+        else
+            gameB_draw()
+        end
     elseif gamestate == "gameBmulti" or gamestate == "failingBmulti" or gamestate == "failedBmulti" or gamestate == "gameBmulti_results" then
         gameBmulti_draw()
     elseif gamestate == "failed" then
@@ -568,6 +577,9 @@ function loadoptions()
                 else
                     fullscreen = false
                 end
+            elseif split2[1]:sub(1, 6) == "debug_" then
+                if debug_params == nil then debug_params = {} end
+                debug_params[split2[1]:sub(7)] = tonumber(split2[2])
             end
         end
 
@@ -584,13 +596,37 @@ function loadoptions()
         if scale == nil then
             scale = suggestedscale
         end
+
+        if debug_params == nil then
+            debug_params = {
+                difficulty_speed = 100,
+                lateral_force = 2000,
+                rotation_torque = 5000,
+                angular_cap = 12,
+                soft_drop_force = 2000,
+                soft_drop_cap_mul = 5,
+                air_brake_coeff = 2000,
+                step = 100,
+            }
+        end
     else
         volume = 1
         hue = 0.08
         autosize()
         scale = suggestedscale
         fullscreen = false
+        debug_params = {
+            difficulty_speed = 100,
+            lateral_force = 2000,
+            rotation_torque = 5000,
+            angular_cap = 12,
+            soft_drop_force = 2000,
+            soft_drop_cap_mul = 5,
+            air_brake_coeff = 2000,
+            step = 100,
+        }
     end
+
 
     saveoptions()
 end
@@ -603,6 +639,11 @@ function saveoptions()
     s = s .. "scale=" .. scale .. "\n"
     s = s .. "fullscreen=" .. tostring(fullscreen) .. "\n"
 
+    if debug_params then
+        for k, v in pairs(debug_params) do
+            s = s .. "debug_" .. k .. "=" .. tostring(v) .. "\n"
+        end
+    end
     love.filesystem.write("options.txt", s)
 end
 
@@ -802,6 +843,14 @@ function love.textinput(text)
             love.audio.stop(highscorebeep)
             love.audio.play(highscorebeep)
         end
+    elseif gamestate == "gameBdebug" then
+        gameBdebug_handle_textinput(text)
+    end
+end
+
+function love.mousepressed(x, y, button, istouch, presses)
+    if gamestate == "gameBdebug" then
+        gameBdebug_handle_mouse(x, y, button)
     end
 end
 
@@ -873,7 +922,14 @@ function love.keypressed(key, scancode, isrepeat)
             if gameno == 1 then
                 gameA_load()
             else
-                gameB_load()
+                if not fullscreen then
+                    local target_scale = scale
+                    local max_for_debug = math.floor(desktopheight / (144 + 90))
+                    if max_for_debug < 1 then max_for_debug = 1 end
+                    if target_scale > max_for_debug then target_scale = max_for_debug end
+                    love.window.setMode(160 * target_scale, (144 + 90) * target_scale, { vsync = vsync })
+                end
+                gameBdebug_load()
             end
         elseif controls.check("left", key) then
             if selection == 2 or selection == 4 or selection == 6 then
@@ -1080,6 +1136,48 @@ function love.keypressed(key, scancode, isrepeat)
             gameno = selection
             loadhighscores()
         end
+    elseif gamestate == "gameBdebug" then
+        if not gameBdebug_handle_keypressed(key) then
+            if controls.check("return", key) then
+                pause = not pause
+                if pause == true then
+                    if musicno < 4 then
+                        love.audio.pause(music[musicno])
+                    end
+                    love.audio.stop(pausesound)
+                    love.audio.play(pausesound)
+                else
+                    if musicno < 4 then
+                        music[musicno]:play()
+                    end
+                end
+            end
+            if controls.check("escape", key) then
+                if not fullscreen then
+                    local s = predebugscale or scale
+                    love.window.setMode(160 * s, 144 * s, { vsync = vsync })
+                end
+                if musicno < 4 then
+                    love.audio.stop(music[musicno])
+                end
+                if soundenabled then
+                    love.audio.stop(musictitle)
+                    love.audio.play(musictitle)
+                end
+                oldtime = love.timer.getTime()
+                saveoptions()
+                gamestate = "menu"
+            end
+            if pause == false and (cuttingtimer == lineclearduration or gamestate == "gameBdebug") then
+                if controls.check("left", key) or controls.check("right", key) then
+                    love.audio.stop(blockmove)
+                    love.audio.play(blockmove)
+                elseif controls.check("rotateleft", key) or controls.check("rotateright", key) then
+                    love.audio.stop(blockturn)
+                    love.audio.play(blockturn)
+                end
+            end
+        end
     elseif gamestate == "gameA" or gamestate == "gameB" or gamestate == "failingA" or gamestate == "failingB" then
         if controls.check("return", key) then
             pause = not pause
@@ -1096,8 +1194,19 @@ function love.keypressed(key, scancode, isrepeat)
                 end
             end
         end
-        if gamestate == "gameA" or gamestate == "gameB" then
+        if gamestate == "gameA" or gamestate == "gameB" or gamestate == "gameBdebug" then
             if controls.check("escape", key) then
+                if not fullscreen then
+                    local s = predebugscale or scale
+                    love.window.setMode(160 * s, 144 * s, { vsync = vsync })
+                end
+                if musicno < 4 then
+                    love.audio.stop(music[musicno])
+                end
+                if soundenabled then
+                    love.audio.stop(musictitle)
+                    love.audio.play(musictitle)
+                end
                 oldtime = love.timer.getTime()
                 gamestate = "menu"
             end
