@@ -122,15 +122,13 @@ function createtetriA(i, uniqueid, x, y) --creates block, including body, shapes
         tetrishapes[uniqueid][4] = love.physics.newRectangleShape(-32, -16, 32, 32)
     end
 
-    tetribodies[uniqueid]:setInertia(blockrot)
     tetribodies[uniqueid]:setLinearDamping(0.5)
     tetribodies[uniqueid]:setBullet(true)
 
     for j, v in pairs(tetrishapes[uniqueid]) do
-        tetrifixtures[uniqueid][j] = love.physics.newFixture(tetribodies[uniqueid], v)
+        tetrifixtures[uniqueid][j] = love.physics.newFixture(tetribodies[uniqueid], v, density)
         tetrifixtures[uniqueid][j]:setUserData({ 1 })
     end
-    tetribodies[uniqueid]:resetMassData()
 end
 
 function gameA_draw()
@@ -563,7 +561,6 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                             tetribodies[i - ioffset]:setAngle(rotation)
                             tetribodies[i - ioffset]:setLinearVelocity(lvx, lvy)
                             tetribodies[i - ioffset]:setAngularVelocity(av)
-                            tetribodies[i - ioffset]:setInertia(blockrot)
 
                             tetrishapes[i - ioffset] = {}
                             tetrifixtures[i - ioffset] = {}
@@ -577,7 +574,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                                     local sid = #tetrishapes[i - ioffset] + 1
                                     tetrishapes[i - ioffset][sid] = love.physics.newPolygonShape(unpack(cotable))
                                     tetrifixtures[i - ioffset][sid] = love.physics.newFixture(tetribodies[i - ioffset],
-                                        tetrishapes[i - ioffset][sid])
+                                        tetrishapes[i - ioffset][sid], density)
                                     tetrifixtures[i - ioffset][sid]:setUserData({ i - ioffset }) --set the shape name for collision
                                 end
                             end
@@ -603,7 +600,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                                 tetribodies[i - ioffset]:resetMassData()
 
                                 for fi, fv in pairs(tetrifixtures[i - ioffset]) do
-                                    fv:setDensity(1)
+                                    fv:setDensity(density)
                                 end
                             end
                         else --create new bodyid
@@ -617,7 +614,6 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                             tetribodies[newid]:setAngle(rotation)
                             tetribodies[newid]:setLinearVelocity(lvx, lvy)
                             tetribodies[newid]:setAngularVelocity(av)
-                            tetribodies[newid]:setInertia(blockrot)
 
                             tetrishapes[newid] = {}
                             tetrifixtures[newid] = {}
@@ -632,7 +628,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                                     local sid = #tetrishapes[newid] + 1
                                     tetrishapes[newid][sid] = love.physics.newPolygonShape(unpack(cotable))
                                     tetrifixtures[newid][sid] = love.physics.newFixture(tetribodies[newid],
-                                        tetrishapes[newid][sid])
+                                        tetrishapes[newid][sid], density)
                                     tetrifixtures[newid][sid]:setUserData({ newid }) --set the shape name for collision
                                 end
                             end
@@ -662,7 +658,7 @@ function removeline(lineno) --Does all necessary things to clear a line. Refines
                                 tetribodies[newid]:resetMassData()
 
                                 for fi, fv in pairs(tetrifixtures[newid]) do
-                                    fv:setDensity(1)
+                                    fv:setDensity(density)
                                 end
                             end
                         end
