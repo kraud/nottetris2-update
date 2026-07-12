@@ -31,7 +31,7 @@ function love.load()
     else
         love.window.setMode(0, 0, { fullscreen = true, vsync = vsync })
         love.mouse.setVisible(false)
-        desktopwidth, desktopheight = love.graphics.getWidth(), love.graphics.getHeight()
+        autosize()
         saveoptions()
 
         suggestedscale = math.floor((desktopheight - 50) / 144)
@@ -40,10 +40,11 @@ function love.load()
         end
         maxscale = math.min(math.floor(desktopheight / 144), math.floor(desktopwidth / 160))
 
-        scale = maxscale
+        local actualw, actualh = love.graphics.getWidth(), love.graphics.getHeight()
+        scale = math.min(maxscale, math.floor(actualh / 144), math.floor(actualw / 160))
 
-        fullscreenoffsetX = (desktopwidth - 160 * scale) / 2
-        fullscreenoffsetY = (desktopheight - 144 * scale) / 2
+        fullscreenoffsetX = (actualw - 160 * scale) / 2
+        fullscreenoffsetY = (actualh - 144 * scale) / 2
     end
 
     physicsscale = scale / 4
@@ -671,19 +672,19 @@ function togglefullscreen(fullscr)
         love.window.setMode(160 * scale, 144 * scale, { vsync = vsync })
     else
         love.window.setMode(0, 0, { fullscreen = true, vsync = vsync, msaa = 16 })
-        desktopwidth, desktopheight = love.graphics.getWidth(), love.graphics.getHeight()
-        suggestedscale = math.min(math.floor((desktopheight - 50) / 144), math.floor((desktopwidth - 10) / 160))
+        autosize()
         suggestedscale = math.min(math.floor((desktopheight - 50) / 144), math.floor((desktopwidth - 10) / 160))
         if suggestedscale > 5 then
             suggestedscale = 5
         end
         maxscale = math.min(math.floor(desktopheight / 144), math.floor(desktopwidth / 160))
 
-        scale = maxscale
+        local actualw, actualh = love.graphics.getWidth(), love.graphics.getHeight()
+        scale = math.min(maxscale, math.floor(actualh / 144), math.floor(actualw / 160))
         physicsscale = scale / 4
 
-        fullscreenoffsetX = (desktopwidth - 160 * scale) / 2
-        fullscreenoffsetY = (desktopheight - 144 * scale) / 2
+        fullscreenoffsetX = (actualw - 160 * scale) / 2
+        fullscreenoffsetY = (actualh - 144 * scale) / 2
     end
 end
 
