@@ -599,13 +599,13 @@ function loadoptions()
         if debug_params == nil then
             debug_params = {
                 difficulty_speed = 100,
-                lateral_force = 2000,
-                rotation_torque = 5000,
+                lateral_force = 400,
+                rotation_torque = 3400,
                 angular_cap = 12,
-                soft_drop_force = 2000,
-                soft_drop_cap_mul = 5,
+                soft_drop_force = 1500,
+                soft_drop_cap_mul = 4,
                 air_brake_coeff = 2000,
-                step = 100,
+                step = 1,
             }
         end
     else
@@ -616,13 +616,13 @@ function loadoptions()
         fullscreen = false
         debug_params = {
             difficulty_speed = 100,
-            lateral_force = 2000,
-            rotation_torque = 5000,
+            lateral_force = 400,
+            rotation_torque = 3400,
             angular_cap = 12,
-            soft_drop_force = 2000,
-            soft_drop_cap_mul = 5,
+            soft_drop_force = 1500,
+            soft_drop_cap_mul = 4,
             air_brake_coeff = 2000,
-            step = 100,
+            step = 1,
         }
     end
 
