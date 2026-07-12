@@ -28,7 +28,7 @@ function gameBmulti_load()
         nextpieceimgmp[i] = newPaddedImage("graphics/pieces/" .. i .. ".png", mpscale)
     end
 
-    difficulty_speed = 100
+    difficulty_speed = debug_params.difficulty_speed
 
     p1fail = false
     p2fail = false
@@ -359,72 +359,72 @@ function gameBmulti_update(dt)
         --PLAYER 1--
         if p1fail == false then
             if love.keyboard.isDown("h") then --clockwise
-                if tetribodiesp1[counterp1]:getAngularVelocity() < 3 then
-                    tetribodiesp1[counterp1]:applyTorque(70)
+                if tetribodiesp1[counterp1]:getAngularVelocity() < debug_params.angular_cap then
+                    tetribodiesp1[counterp1]:applyTorque(debug_params.rotation_torque)
                 end
             end
             if love.keyboard.isDown("g") then --counterclockwise
-                if tetribodiesp1[counterp1]:getAngularVelocity() > -3 then
-                    tetribodiesp1[counterp1]:applyTorque(-70)
+                if tetribodiesp1[counterp1]:getAngularVelocity() > -debug_params.angular_cap then
+                    tetribodiesp1[counterp1]:applyTorque(-debug_params.rotation_torque)
                 end
             end
 
             if love.keyboard.isDown("a") then --left
                 x, y = tetribodiesp1[counterp1]:getWorldCenter()
-                tetribodiesp1[counterp1]:applyForce(-70, 0, x, y)
+                tetribodiesp1[counterp1]:applyForce(-debug_params.lateral_force, 0, x, y)
             end
             if love.keyboard.isDown("d") then --right
                 x, y = tetribodiesp1[counterp1]:getWorldCenter()
-                tetribodiesp1[counterp1]:applyForce(70, 0, x, y)
+                tetribodiesp1[counterp1]:applyForce(debug_params.lateral_force, 0, x, y)
             end
 
             local x, y = tetribodiesp1[counterp1]:getLinearVelocity()
             if love.keyboard.isDown("s") then --down
-                if y > difficulty_speed * 5 then
-                    tetribodiesp1[counterp1]:setLinearVelocity(x, difficulty_speed * 5)
+                if y > difficulty_speed * debug_params.soft_drop_cap_mul then
+                    tetribodiesp1[counterp1]:setLinearVelocity(x, difficulty_speed * debug_params.soft_drop_cap_mul)
                 else
                     local cx, cy = tetribodiesp1[counterp1]:getWorldCenter()
-                    tetribodiesp1[counterp1]:applyForce(0, 20, cx, cy)
+                    tetribodiesp1[counterp1]:applyForce(0, debug_params.soft_drop_force, cx, cy)
                 end
             else
                 if y > difficulty_speed then
-                    tetribodiesp1[counterp1]:setLinearVelocity(x, y - 2000 * dt)
+                    tetribodiesp1[counterp1]:setLinearVelocity(x, y - debug_params.air_brake_coeff * dt)
                 end
             end
         end
         --PLAYER 2--
         if p2fail == false then
             if love.keyboard.isDown("kp2") then --clockwise
-                if tetribodiesp2[counterp2]:getAngularVelocity() < 3 then
-                    tetribodiesp2[counterp2]:applyTorque(70)
+                if tetribodiesp2[counterp2]:getAngularVelocity() < debug_params.angular_cap then
+                    tetribodiesp2[counterp2]:applyTorque(debug_params.rotation_torque)
                 end
             end
             if love.keyboard.isDown("kp1") then --counterclockwise
-                if tetribodiesp2[counterp2]:getAngularVelocity() > -3 then
-                    tetribodiesp2[counterp2]:applyTorque(-70)
+                if tetribodiesp2[counterp2]:getAngularVelocity() > -debug_params.angular_cap then
+                    tetribodiesp2[counterp2]:applyTorque(-debug_params.rotation_torque)
                 end
             end
 
             if love.keyboard.isDown("left") then --left
                 x, y = tetribodiesp2[counterp2]:getWorldCenter()
-                tetribodiesp2[counterp2]:applyForce(-70, 0, x, y)
+                tetribodiesp2[counterp2]:applyForce(-debug_params.lateral_force, 0, x, y)
             end
             if love.keyboard.isDown("right") then --right
                 x, y = tetribodiesp2[counterp2]:getWorldCenter()
-                tetribodiesp2[counterp2]:applyForce(70, 0, x, y)
+                tetribodiesp2[counterp2]:applyForce(debug_params.lateral_force, 0, x, y)
             end
 
             local x, y = tetribodiesp2[counterp2]:getLinearVelocity()
             if love.keyboard.isDown("down") then --down
-                if y > difficulty_speed * 5 then
-                    tetribodiesp2[counterp2]:setLinearVelocity(x, difficulty_speed * 5)
+                if y > difficulty_speed * debug_params.soft_drop_cap_mul then
+                    tetribodiesp2[counterp2]:setLinearVelocity(x, difficulty_speed * debug_params.soft_drop_cap_mul)
                 else
                     local cx, cy = tetribodiesp2[counterp2]:getWorldCenter()
-                    tetribodiesp2[counterp2]:applyForce(0, 20, cx, cy)
+                    tetribodiesp2[counterp2]:applyForce(0, debug_params.soft_drop_force, cx, cy)
                 end
             else
                 if y > difficulty_speed then
-                    tetribodiesp2[counterp2]:setLinearVelocity(x, y - 2000 * dt)
+                    tetribodiesp2[counterp2]:setLinearVelocity(x, y - debug_params.air_brake_coeff * dt)
                 end
             end
         end
@@ -649,12 +649,11 @@ function createtetriBmultip1(i, uniqueid, x, y)
         tetrishapesp1[uniqueid][4] = love.physics.newRectangleShape(-32, -16, 32, 32)
     end
 
-    tetribodiesp1[uniqueid]:setInertia(blockrot)
     tetribodiesp1[uniqueid]:setLinearDamping(0.5)
     tetribodiesp1[uniqueid]:setBullet(true)
 
     for j, v in pairs(tetrishapesp1[uniqueid]) do
-        tetrifixturesp1[uniqueid][j] = love.physics.newFixture(tetribodiesp1[uniqueid], v)
+        tetrifixturesp1[uniqueid][j] = love.physics.newFixture(tetribodiesp1[uniqueid], v, density)
         tetrifixturesp1[uniqueid][j]:setUserData("p1-" .. uniqueid)
         tetrifixturesp1[uniqueid][j]:setMask(3)
     end
@@ -710,12 +709,11 @@ function createtetriBmultip2(i, uniqueid, x, y)
         tetrishapesp2[uniqueid][4] = love.physics.newRectangleShape(-32, -16, 32, 32)
     end
 
-    tetribodiesp2[uniqueid]:setInertia(blockrot)
     tetribodiesp2[uniqueid]:setLinearDamping(0.5)
     tetribodiesp2[uniqueid]:setBullet(true)
 
     for j, v in pairs(tetrishapesp2[uniqueid]) do
-        tetrifixturesp2[uniqueid][j] = love.physics.newFixture(tetribodiesp2[uniqueid], v)
+        tetrifixturesp2[uniqueid][j] = love.physics.newFixture(tetribodiesp2[uniqueid], v, density)
         tetrifixturesp2[uniqueid][j]:setUserData("p2-" .. uniqueid)
         tetrifixturesp2[uniqueid][j]:setMask(2)
     end
