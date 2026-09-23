@@ -20,13 +20,19 @@ bump a value (default 100). Values are written to `options.txt` via the same
 | Key                  | Default | Read in                                                                  |
 |----------------------|---------|--------------------------------------------------------------------------|
 | `difficulty_speed`   | 100     | `gameA.lua:7, 1038` (initial + per-level ramp), `gameB.lua:6`, `gameBmulti.lua:31` |
-| `lateral_force`      | 2000    | `gameA.lua:339, 343`; `gameB.lua:261, 265`; `gameBmulti.lua:374, 378, 410, 414` |
-| `rotation_torque`    | 5000    | `gameA.lua:328, 333`; `gameB.lua:250, 255`; `gameBmulti.lua:363, 368, 399, 404` |
+| `lateral_force`      | 400     | `gameA.lua:339, 343`; `gameB.lua:261, 265`; `gameBmulti.lua:374, 378, 410, 414` |
+| `rotation_torque`    | 3400    | `gameA.lua:328, 333`; `gameB.lua:250, 255`; `gameBmulti.lua:363, 368, 399, 404` |
 | `angular_cap`        | 12      | `gameA.lua:327, 332`; `gameB.lua:249, 254`; `gameBmulti.lua:362, 367, 398, 403` |
-| `soft_drop_force`    | 2000    | `gameA.lua:353`; `gameB.lua:275`; `gameBmulti.lua:387, 423`               |
-| `soft_drop_cap_mul`  | 5       | `gameA.lua:349, 350`; `gameB.lua:271, 272`; `gameBmulti.lua:383, 384, 419, 420` |
+| `soft_drop_force`    | 1500    | `gameA.lua:353`; `gameB.lua:275`; `gameBmulti.lua:387, 423`               |
+| `soft_drop_cap_mul`  | 4       | `gameA.lua:349, 350`; `gameB.lua:271, 272`; `gameBmulti.lua:383, 384, 419, 420` |
 | `air_brake_coeff`    | 2000    | `gameA.lua:357`; `gameB.lua:279`; `gameBmulti.lua:391, 427`               |
-| `step`               | 100     | `gameBdebug.lua` panel UI only (the increment of the +/- buttons)         |
+| `step`               | 1       | `gameBdebug.lua` panel UI only (the increment of the +/- buttons)         |
+
+Defaults are the `main.lua:601–610` / `618–627` values. `gameBdebug.lua:14–23`
+carries a separate fallback table (2000 / 5000 / 12 / 2000 / 5 / 2000, step 100)
+that is effectively dead: `loadoptions()` always sets `debug_params` before
+`gameBdebug_load` runs. The values actually in play on a given machine are
+whatever that machine's `options.txt` holds, which may differ from both.
 
 ## How persistence works
 
