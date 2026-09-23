@@ -1,0 +1,12 @@
+{
+    // Static-assets-only Worker: no "main" script, just serves web/ as-is.
+    // This is what Cloudflare's dashboard "Deploy command" (npx wrangler deploy) reads.
+    "name": "not-tetris-2-updated",
+    // Gates which runtime defaults apply; irrelevant for a pure static-asset site.
+    // Kept safely in the past so it's never rejected as "in the future".
+    "compatibility_date": "2024-09-23",
+    "assets": {
+        // Populated by build_web.sh right before this runs.
+        "directory": "./web"
+    }
+}
